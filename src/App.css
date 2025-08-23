@@ -1,0 +1,260 @@
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}
+
+/* ================================ */
+/* LOGIN PAGE CSS COMPONENTS START */
+/* ================================ */
+
+/* 🔹 Main Container for Login Page */
+.auth-main {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 70vh;
+  padding: 2rem;
+}
+
+/* 🔹 Login Card/Box Container */
+.auth-container {
+  background: #fff;
+  padding: 3rem 2.5rem;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  max-width: 400px;
+  width: 100%;
+  margin: 2rem auto;
+  border: 1px solid #f1f1f1;
+}
+
+/* 🔹 Login Header Section (Welcome Back + subtitle) */
+.auth-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+/* 🔹 Login Title (Welcome Back) */
+.auth-header h2 {
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 0.5rem;
+  margin-right: auto;
+  text-align: center;
+  border-radius: 2px;
+}
+
+/* 🔹 Login Subtitle Text */
+.auth-subtext {
+  color: #ffffff;
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+/* 🔹 Login Form Container */
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+/* 🔹 Input Field Wrapper */
+.input-group {
+  display: flex;
+  flex-direction: column;
+}
+
+/* 🔹 Email & Password Input Fields */
+.auth-form input {
+  padding: 0.9rem 1.2rem;
+  border: 2px solid #e5e5e5;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  background: #fafafa;
+}
+
+/* 🔹 Input Fields on Focus (when clicked) */
+.auth-form input:focus {
+  outline: none;
+  border-color: #4f46e5;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+/* 🔹 Sign In Button */
+.auth-submit-btn {
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.9rem 1.2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 0.5rem;
+}
+
+/* 🔹 Sign In Button on Hover */
+.auth-submit-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(217, 215, 241, 0.3);
+}
+
+/* 🔹 Footer Section (Don't have account text) */
+.auth-footer {
+  text-align: center;
+  padding-top: 1rem;
+  border-top: 1px solid #f0f0f0;
+}
+
+/* 🔹 Footer Text */
+.auth-footer p {
+  color: #666;
+  margin: 0;
+}
+
+/* 🔹 "Create one here" Link Button */
+.signup-link {
+  background: none;
+  border: none;
+  color: #4f46e5;
+  cursor: pointer;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+/* 🔹 Signup Link on Hover */
+.signup-link:hover {
+  color: #9a98b3;
+  text-decoration: underline;
+}
+
+/* ============================== */
+/* LOGIN PAGE CSS COMPONENTS END */
+/* ==============================*/
+
+.navbar-btn {
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.6rem 1.2rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.navbar-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+}
+
+.auth-links-navbar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.user-email { color:#555; font-size: .9rem; }
+.error-text { color:#b91c1c; font-size: .9rem; }
+.back-btn {
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.6rem 1.2rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* Toast notification */
+.toast {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  background: #10b981;
+  color: white;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: all .25s ease;
+  pointer-events: none;
+  z-index: 1000;
+}
+.toast.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.back-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+}
+
+
+
+
+/* Alt auth section (Google, Phone) */
+.alt-auth { margin-top: 1rem; }
+.divider {
+  display: flex; align-items: center; gap: .75rem; color: #888; margin: 1rem 0;
+}
+.divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: #eee; }
+.divider.small { margin-top: .5rem; }
+
+.oauth-btn {
+  width: 100%;
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  color: #1a1a1a;
+  border-radius: 8px;
+  padding: .7rem 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .2s ease;
+}
+.oauth-btn:hover { box-shadow: 0 6px 16px rgba(0,0,0,0.06); transform: translateY(-1px); }
+.oauth-btn.google { border-color: #e5e7eb; }
+
+
+

@@ -1,11 +1,12 @@
 import React, { useState } from "react";
-import '../App.css';
-import { useAuth } from '../auth/AuthContext.jsx';
+import "../../App.css";
+import { useAuth } from '../../auth/AuthContext.jsx';
 
-const Login = ({ onSwitchToSignup, onSuccess }) => {
-  const { login, googleSignIn, sendPhoneOtp, verifyPhoneOtp } = useAuth();
+const Signup = ({ onSwitchToLogin, onSuccess }) => {
+  const { signup, sendPhoneOtp, verifyPhoneOtp } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [phone, setPhone] = useState("");
@@ -15,25 +16,16 @@ const Login = ({ onSwitchToSignup, onSuccess }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
     setLoading(true);
     try {
-      await login(email, password);
+      await signup(email, password);
       onSuccess && onSuccess();
     } catch (err) {
       setError(mapAuthError(err));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGoogle = async () => {
-    setError("");
-    setLoading(true);
-    try {
-      await googleSignIn();
-      onSuccess && onSuccess();
-    } catch (err) {
-      setError('Google sign-in failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -44,7 +36,7 @@ const Login = ({ onSwitchToSignup, onSuccess }) => {
     setError('');
     setLoading(true);
     try {
-      await sendPhoneOtp(phone, 'recaptcha-container');
+      await sendPhoneOtp(phone, 'recaptcha-container-signup');
       setOtpSent(true);
     } catch (err) {
       setError('Failed to send OTP. Check phone format incl. country code, e.g., +1...');
@@ -70,8 +62,8 @@ const Login = ({ onSwitchToSignup, onSuccess }) => {
   return (
     <div className="auth-container">
       <div className="auth-header">
-        <h2>Welcome Back</h2>
-       
+        <h2>Create your account</h2>
+        <p className="auth-subtext">Start your personalized learning plan</p>
       </div>
       <form onSubmit={handleSubmit} className="auth-form">
         <div className="input-group">
@@ -92,21 +84,25 @@ const Login = ({ onSwitchToSignup, onSuccess }) => {
             required
           />
         </div>
+        <div className="input-group">
+          <input
+            type="password"
+            placeholder="Confirm password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            required
+          />
+        </div>
         {error && <div className="error-text">{error}</div>}
         <button type="submit" className="auth-submit-btn" disabled={loading}>
-          {loading ? 'Signing In…' : 'Sign In'}
+          {loading ? 'Creating…' : 'Create Account'}
         </button>
       </form>
-
       <div className="alt-auth">
         <div className="divider"><span>or</span></div>
-        <button className="oauth-btn google" onClick={handleGoogle} disabled={loading}>
-          Continue with Google
-        </button>
-
-        <div className="divider small"><span>or sign in with phone</span></div>
+        <div className="divider small"><span>or sign up with phone</span></div>
         <form className="auth-form" onSubmit={otpSent ? handleVerifyOtp : handleSendOtp}>
-          <div id="recaptcha-container" />
+          <div id="recaptcha-container-signup" />
           <div className="input-group">
             <input
               type="tel"
@@ -135,9 +131,9 @@ const Login = ({ onSwitchToSignup, onSuccess }) => {
       </div>
       <div className="auth-footer">
         <p>
-          Don't have an account?{' '}
-          <button className="signup-link" onClick={onSwitchToSignup}>
-            Create one here
+          Already have an account?{' '}
+          <button className="signup-link" onClick={onSwitchToLogin}>
+            Sign in
           </button>
         </p>
       </div>
@@ -145,17 +141,4 @@ const Login = ({ onSwitchToSignup, onSuccess }) => {
   );
 };
 
-export default Login;
-
-function mapAuthError(error) {
-  const code = error?.code || '';
-  const map = {
-    'auth/invalid-credential': 'Email or password is incorrect.',
-    'auth/invalid-email': 'Please enter a valid email.',
-    'auth/user-disabled': 'This account has been disabled.',
-    'auth/user-not-found': 'No account found with this email.',
-    'auth/wrong-password': 'Incorrect password.',
-    'auth/too-many-requests': 'Too many attempts. Try again later.',
-  };
-  return map[code] || 'Something went wrong. Please try again.';
-}
+export default Signup;

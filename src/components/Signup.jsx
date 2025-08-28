@@ -1,145 +1,144 @@
-import { useState } from 'react';
+import React, { useState } from "react";
+import "../App.css";
+import { useAuth } from '../auth/AuthContext.jsx';
 
-function Signup({ onSwitchToLogin, onClose }) {
-  const [formData, setFormData] = useState({
-    fullName: '',
-    email: '',
-    password: '',
-    confirmPassword: ''
-  });
+const Signup = ({ onSwitchToLogin, onSuccess }) => {
+  const { signup, sendPhoneOtp, verifyPhoneOtp } = useAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-    if (error) setError('');
-  };
+  const [error, setError] = useState("");
+  const [phone, setPhone] = useState("");
+  const [otp, setOtp] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match!');
+    setError("");
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
       return;
     }
-
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters long');
-      return;
-    }
-
     setLoading(true);
-    setError('');
-
-    // Simulate signup process
-    setTimeout(() => {
-      // Basic validation
-      if (!formData.email || !formData.password || !formData.fullName) {
-        setError('Please fill in all fields');
-        setLoading(false);
-        return;
-      }
-
-      // Demo signup success
-      localStorage.setItem('userToken', 'demo-token-' + Date.now());
-      localStorage.setItem('userDisplayName', formData.fullName);
-      
-      alert(`Account created for ${formData.fullName}! Welcome to KnowMap!`);
+    try {
+      await signup(email, password);
+      onSuccess && onSuccess();
+    } catch (err) {
+      setError(mapAuthError(err));
+    } finally {
       setLoading(false);
-      onClose();
-    }, 1000);
+    }
+  };
+
+  const handleSendOtp = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      await sendPhoneOtp(phone, 'recaptcha-container-signup');
+      setOtpSent(true);
+    } catch (err) {
+      setError('Failed to send OTP. Check phone format incl. country code, e.g., +1...');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      await verifyPhoneOtp(otp);
+      onSuccess && onSuccess();
+    } catch (err) {
+      setError('Invalid code. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="auth-overlay" onClick={onClose}>
-      <div className="auth-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="auth-header">
-          <h2>Join KnowMap</h2>
-          <button className="close-button" onClick={onClose}>×</button>
+    <div className="auth-container">
+      <div className="auth-header">
+        <h2>Create your account</h2>
+        <p className="auth-subtext">Start your personalized learning plan</p>
+      </div>
+      <form onSubmit={handleSubmit} className="auth-form">
+        <div className="input-group">
+          <input
+            type="email"
+            placeholder="Email address"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
         </div>
-        
-        <form onSubmit={handleSubmit} className="auth-form">
-          {error && (
-            <div className="error-message">
-              {error}
+        <div className="input-group">
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+        </div>
+        <div className="input-group">
+          <input
+            type="password"
+            placeholder="Confirm password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            required
+          />
+        </div>
+        {error && <div className="error-text">{error}</div>}
+        <button type="submit" className="auth-submit-btn" disabled={loading}>
+          {loading ? 'Creating…' : 'Create Account'}
+        </button>
+      </form>
+      <div className="alt-auth">
+        <div className="divider"><span>or</span></div>
+        <div className="divider small"><span>or sign up with phone</span></div>
+        <form className="auth-form" onSubmit={otpSent ? handleVerifyOtp : handleSendOtp}>
+          <div id="recaptcha-container-signup" />
+          <div className="input-group">
+            <input
+              type="tel"
+              placeholder="Phone number (e.g., +1 555 555 5555)"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              required={!otpSent}
+              disabled={otpSent}
+            />
+          </div>
+          {otpSent && (
+            <div className="input-group">
+              <input
+                type="text"
+                placeholder="Enter OTP"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+                required
+              />
             </div>
           )}
-          
-          <div className="form-group">
-            <label htmlFor="fullName">Full Name</label>
-            <input
-              type="text"
-              id="fullName"
-              name="fullName"
-              value={formData.fullName}
-              onChange={handleChange}
-              placeholder="Enter your full name"
-              required
-              disabled={loading}
-            />
-          </div>
-          
-          <div className="form-group">
-            <label htmlFor="email">Email</label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              placeholder="Enter your email"
-              required
-              disabled={loading}
-            />
-          </div>
-          
-          <div className="form-group">
-            <label htmlFor="password">Password</label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              placeholder="Create a password (min. 6 characters)"
-              required
-              disabled={loading}
-            />
-          </div>
-          
-          <div className="form-group">
-            <label htmlFor="confirmPassword">Confirm Password</label>
-            <input
-              type="password"
-              id="confirmPassword"
-              name="confirmPassword"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              placeholder="Confirm your password"
-              required
-              disabled={loading}
-            />
-          </div>
-          
-          <button type="submit" className="auth-submit-button" disabled={loading}>
-            {loading ? 'Creating Account...' : 'Create Account'}
+          <button type="submit" className="auth-submit-btn" disabled={loading}>
+            {otpSent ? 'Verify Code' : 'Send OTP'}
           </button>
         </form>
-        
-        <div className="auth-footer">
-          <p>
-            Already have an account?{' '}
-            <button className="auth-link" onClick={onSwitchToLogin}>
-              Sign in here
-            </button>
-          </p>
-        </div>
+      </div>
+      <div className="auth-footer">
+        <p>
+          Already have an account?{' '}
+          <button className="signup-link" onClick={onSwitchToLogin}>
+            Sign in
+          </button>
+        </p>
       </div>
     </div>
   );
-}
+};
 
 export default Signup;

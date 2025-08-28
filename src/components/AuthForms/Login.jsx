@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import '../App.css';
-import { useAuth } from '../auth/AuthContext.jsx';
+import '../../App.css';
+import { useAuth } from '../../auth/AuthContext.jsx';
 
 const Login = ({ onSwitchToSignup, onSuccess }) => {
   const { login, googleSignIn, sendPhoneOtp, verifyPhoneOtp } = useAuth();

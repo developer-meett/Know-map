@@ -1,3 +1,9 @@
+/* ========================================================================= */
+/* ========================================================================= */
+/* 🎨 REACT LOGO & DEFAULT VITE STYLES                                      */
+/* ========================================================================= */
+/* ========================================================================= */
+
 .logo {
   height: 6em;
   padding: 1.5em;
@@ -34,140 +40,47 @@
   color: #888;
 }
 
-/* ================================ */
-/* LOGIN PAGE CSS COMPONENTS START */
-/* ================================ */
+/* ========================================================================= */
+/* ========================================================================= */
+/* 🧭 NAVBAR COMPONENT STYLES                                               */
+/* ========================================================================= */
+/* ========================================================================= */
 
-/* 🔹 Main Container for Login Page */
-.auth-main {
+/* ----------------------------- NAVBAR BUTTONS ----------------------------- */
+
+/* Main navbar container */
+.navbar {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 1rem 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+/* Logo section */
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.logo-icon {
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 70vh;
-  padding: 2rem;
+  font-weight: 800;
+  font-size: 1.1rem;
 }
-
-/* 🔹 Login Card/Box Container */
-.auth-container {
-  background: #fff;
-  padding: 3rem 2.5rem;
-  border-radius: 16px;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.08);
-  max-width: 400px;
-  width: 100%;
-  margin: 2rem auto;
-  border: 1px solid #f1f1f1;
-}
-
-/* 🔹 Login Header Section (Welcome Back + subtitle) */
-.auth-header {
-  text-align: center;
-  margin-bottom: 2rem;
-}
-
-/* 🔹 Login Title (Welcome Back) */
-.auth-header h2 {
-  font-size: 1.8rem;
-  font-weight: 600;
-  color: #1a1a1a;
-  margin-bottom: 0.5rem;
-  margin-right: auto;
-  text-align: center;
-  border-radius: 2px;
-}
-
-/* 🔹 Login Subtitle Text */
-.auth-subtext {
-  color: #ffffff;
-  font-size: 0.95rem;
-  margin: 0;
-}
-
-/* 🔹 Login Form Container */
-.auth-form {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  margin-bottom: 2rem;
-}
-
-/* 🔹 Input Field Wrapper */
-.input-group {
-  display: flex;
-  flex-direction: column;
-}
-
-/* 🔹 Email & Password Input Fields */
-.auth-form input {
-  padding: 0.9rem 1.2rem;
-  border: 2px solid #e5e5e5;
-  border-radius: 8px;
-  font-size: 1rem;
-  transition: all 0.2s ease;
-  background: #fafafa;
-}
-
-/* 🔹 Input Fields on Focus (when clicked) */
-.auth-form input:focus {
-  outline: none;
-  border-color: #4f46e5;
-  background: #fff;
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
-}
-
-/* 🔹 Sign In Button */
-.auth-submit-btn {
-  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  padding: 0.9rem 1.2rem;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  margin-top: 0.5rem;
-}
-
-/* 🔹 Sign In Button on Hover */
-.auth-submit-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(217, 215, 241, 0.3);
-}
-
-/* 🔹 Footer Section (Don't have account text) */
-.auth-footer {
-  text-align: center;
-  padding-top: 1rem;
-  border-top: 1px solid #f0f0f0;
-}
-
-/* 🔹 Footer Text */
-.auth-footer p {
-  color: #666;
-  margin: 0;
-}
-
-/* 🔹 "Create one here" Link Button */
-.signup-link {
-  background: none;
-  border: none;
-  color: #4f46e5;
-  cursor: pointer;
-  font-weight: 600;
-  text-decoration: none;
-  transition: color 0.2s;
-}
-
-/* 🔹 Signup Link on Hover */
-.signup-link:hover {
-  color: #9a98b3;
-  text-decoration: underline;
-}
-
-/* ============================== */
-/* LOGIN PAGE CSS COMPONENTS END */
-/* ==============================*/
 
 .navbar-btn {
   background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
@@ -186,13 +99,21 @@
   box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
 }
 
+/* ----------------------------- AUTH LINKS & USER INFO ----------------------------- */
+
 .auth-links-navbar {
   display: flex;
   align-items: center;
   gap: 1rem;
 }
-.user-email { color:#555; font-size: .9rem; }
-.error-text { color:#b91c1c; font-size: .9rem; }
+
+.user-email { 
+  color: #555; 
+  font-size: 0.9rem; 
+}
+
+/* ----------------------------- BACK BUTTON ----------------------------- */
+
 .back-btn {
   background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
   color: #fff;
@@ -205,7 +126,446 @@
   transition: all 0.2s ease;
 }
 
-/* Toast notification */
+.back-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+}
+
+/* ========================================================================= */
+/* ========================================================================= */
+/* 🏠 HOME PAGE COMPONENT STYLES                                            */
+/* ========================================================================= */
+/* ========================================================================= */
+
+/* ----------------------------- HERO SECTION ----------------------------- */
+
+.hero {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 70vh;
+  padding: 2rem;
+  text-align: center;
+}
+
+.hero-title {
+  font-size: 3rem;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 1.5rem;
+  line-height: 1.2;
+}
+
+.highlight {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-subtitle {
+  font-size: 1.2rem;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 2.5rem;
+  max-width: 600px;
+  line-height: 1.6;
+}
+
+/* ----------------------------- CTA SECTION ----------------------------- */
+
+.cta-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.cta-button {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  color: #1a1a1a;
+  border: none;
+  border-radius: 12px;
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cta-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(251, 191, 36, 0.3);
+}
+
+.quiz-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.9rem;
+}
+
+.quiz-info svg {
+  width: 16px;
+  height: 16px;
+  color: #10b981;
+}
+
+/* ========================================================================= */
+/* ========================================================================= */
+/* 🔐 AUTHENTICATION PAGES STYLES (Login & Signup)                         */
+/* ========================================================================= */
+/* ========================================================================= */
+
+/* ----------------------------- AUTH LAYOUT ----------------------------- */
+
+/* Main Container for Auth Pages */
+.auth-main {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 70vh;
+  padding: 2rem;
+}
+
+/* Auth Card/Box Container */
+.auth-container {
+  background: #fff;
+  padding: 3rem 2.5rem;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  max-width: 400px;
+  width: 100%;
+  margin: 2rem auto;
+  border: 1px solid #f1f1f1;
+}
+
+/* Auth Header Section (Welcome Back + subtitle) */
+.auth-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+/* Auth Title (Welcome Back / Create Account) */
+.auth-header h2 {
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 0.5rem;
+  margin-right: auto;
+  text-align: center;
+  border-radius: 2px;
+}
+
+/* Auth Subtitle Text */
+.auth-subtext {
+  color: #ffffff;
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+/* ----------------------------- AUTH FORM ELEMENTS ----------------------------- */
+
+/* Auth Form Container */
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+/* Input Field Wrapper */
+.input-group {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Email & Password Input Fields */
+.auth-form input {
+  padding: 0.9rem 1.2rem;
+  border: 2px solid #e5e5e5;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  background: #fafafa;
+}
+
+/* Input Fields on Focus (when clicked) */
+.auth-form input:focus {
+  outline: none;
+  border-color: #4f46e5;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+/* ----------------------------- AUTH BUTTONS & LINKS ----------------------------- */
+
+/* Sign In/Sign Up Submit Button */
+.auth-submit-btn {
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.9rem 1.2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 0.5rem;
+}
+
+/* Submit Button on Hover */
+.auth-submit-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(217, 215, 241, 0.3);
+}
+
+/* Footer Section (Switch between Login/Signup) */
+.auth-footer {
+  text-align: center;
+  padding-top: 1rem;
+  border-top: 1px solid #f0f0f0;
+}
+
+/* Footer Text */
+.auth-footer p {
+  color: #666;
+  margin: 0;
+}
+
+/* "Create Account" / "Sign In" Link Button */
+.signup-link {
+  background: none;
+  border: none;
+  color: #4f46e5;
+  cursor: pointer;
+  font-weight: 600;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+/* Signup/Login Link on Hover */
+.signup-link:hover {
+  color: #9a98b3;
+  text-decoration: underline;
+}
+
+/* Error Message Text */
+.error-text { 
+  color: #b91c1c; 
+  font-size: 0.9rem; 
+}
+
+/* ----------------------------- ALTERNATIVE AUTH (Google, etc) ----------------------------- */
+
+/* Alternative Auth Options (Google, Phone) */
+.alt-auth { 
+  margin-top: 1rem; 
+}
+
+.divider {
+  display: flex; 
+  align-items: center; 
+  gap: 0.75rem; 
+  color: #888; 
+  margin: 1rem 0;
+}
+
+.divider::before, .divider::after { 
+  content: ""; 
+  flex: 1; 
+  height: 1px; 
+  background: #eee; 
+}
+
+.divider.small { 
+  margin-top: 0.5rem; 
+}
+
+.oauth-btn {
+  width: 100%;
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  color: #1a1a1a;
+  border-radius: 8px;
+  padding: 0.7rem 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.oauth-btn:hover { 
+  box-shadow: 0 6px 16px rgba(0,0,0,0.06); 
+  transform: translateY(-1px); 
+}
+
+.oauth-btn.google { 
+  border-color: #e5e7eb; 
+}
+
+/* ========================================================================= */
+/* ========================================================================= */
+/* 🧠 QUIZ COMPONENT STYLES                                                 */
+/* ========================================================================= */
+/* ========================================================================= */
+
+/* ----------------------------- QUIZ LAYOUT ----------------------------- */
+
+/* Main Quiz Container */
+.quiz-container {
+  max-width: 800px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+}
+
+/* Quiz Header (Question 1 of 5) */
+.quiz-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+/* Quiz Question Title */
+.quiz-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+/* Quiz Progress Indicator */
+.quiz-progress {
+  color: #666;
+  font-size: 0.9rem;
+  background: #f8f9fa;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+}
+
+/* ----------------------------- QUIZ QUESTIONS & OPTIONS ----------------------------- */
+
+/* Quiz Question Text */
+.quiz-question {
+  font-size: 1.2rem;
+  color: #1a1a1a;
+  margin-bottom: 2rem;
+  line-height: 1.6;
+}
+
+/* Quiz Options Container */
+.quiz-options {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+/* Individual Quiz Option Button */
+.quiz-option {
+  background: #f8f9fa;
+  border: 2px solid #e9ecef;
+  border-radius: 12px;
+  padding: 1rem 1.5rem;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 1rem;
+  color: #1a1a1a;
+}
+
+.quiz-option:hover {
+  background: #e9ecef;
+  border-color: #4f46e5;
+}
+
+/* Selected Quiz Option */
+.quiz-option-selected {
+  background: #4f46e5;
+  border-color: #4f46e5;
+  color: #fff;
+}
+
+/* Quiz Footer (Next/Finish Button) */
+.quiz-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* ----------------------------- QUIZ RESULTS ----------------------------- */
+
+/* Quiz Results Container */
+.quiz-results-container {
+  max-width: 600px;
+  margin: 2rem auto;
+  padding: 3rem 2rem;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  text-align: center;
+}
+
+/* Quiz Results Header */
+.quiz-results-header {
+  margin-bottom: 2rem;
+}
+
+/* Quiz Results Title */
+.quiz-results-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #10b981;
+  margin-bottom: 1rem;
+}
+
+/* Quiz Score Text */
+.quiz-score {
+  font-size: 1.3rem;
+  color: #1a1a1a;
+  margin-bottom: 2rem;
+}
+
+/* Quiz Score Numbers (Highlighted) */
+.quiz-score-number {
+  font-weight: 700;
+  color: #4f46e5;
+}
+
+/* Quiz Restart Button */
+.quiz-restart-btn {
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.quiz-restart-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(79, 70, 229, 0.3);
+}
+
+/* Quiz Main Page Container */
+.quiz-main {
+  padding: 2rem;
+  min-height: 70vh;
+}
+
+/* ========================================================================= */
+/* ========================================================================= */
+/* 🔔 TOAST NOTIFICATION STYLES                                             */
+/* ========================================================================= */
+/* ========================================================================= */
+
 .toast {
   position: fixed;
   top: 16px;
@@ -217,44 +577,82 @@
   box-shadow: 0 6px 18px rgba(0,0,0,0.15);
   opacity: 0;
   transform: translateY(-6px);
-  transition: all .25s ease;
+  transition: all 0.25s ease;
   pointer-events: none;
   z-index: 1000;
 }
+
 .toast.show {
   opacity: 1;
   transform: translateY(0);
 }
 
-.back-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+.toast-success {
+  background: #10b981;
 }
 
-
-
-
-/* Alt auth section (Google, Phone) */
-.alt-auth { margin-top: 1rem; }
-.divider {
-  display: flex; align-items: center; gap: .75rem; color: #888; margin: 1rem 0;
+.toast-error {
+  background: #ef4444;
 }
-.divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: #eee; }
-.divider.small { margin-top: .5rem; }
 
-.oauth-btn {
-  width: 100%;
-  background: #fff;
-  border: 1px solid #e5e5e5;
-  color: #1a1a1a;
+.toast-info {
+  background: #3b82f6;
+}
+
+/* ========================================================================= */
+/* ========================================================================= */
+/* 🔧 UTILITY CLASSES                                                       */
+/* ========================================================================= */
+/* ========================================================================= */
+
+/* Generic Button Styles */
+.btn {
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  color: #fff;
+  border: none;
   border-radius: 8px;
-  padding: .7rem 1rem;
+  padding: 0.8rem 1.5rem;
+  font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all .2s ease;
+  transition: all 0.2s ease;
 }
-.oauth-btn:hover { box-shadow: 0 6px 16px rgba(0,0,0,0.06); transform: translateY(-1px); }
-.oauth-btn.google { border-color: #e5e7eb; }
+
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(79, 70, 229, 0.3);
+}
+
+/* Disabled Button */
+.btn-disabled {
+  background: #d1d5db;
+  color: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Container Class */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+/* Loading Spinner */
+.loading-spinner {
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #4f46e5;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
 
 
 

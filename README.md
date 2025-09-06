@@ -1,12 +1,157 @@
-# React + Vite
+# Know-Map Quiz App 🎯
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modern, responsive quiz application built with React, Firebase, and Vite featuring multi-method authentication and professional UI/UX.
 
-Currently, two official plugins are available:
+## ✨ Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### 🔐 **Multi-Method Authentication**
+- **Google Sign-In**: One-click authentication with Google accounts
+- **Phone/OTP**: SMS-based verification with international phone support
+- **Email/Password**: Traditional email registration and login
 
-## Expanding the ESLint configuration
+### 🎮 **Quiz Experience** 
+- Interactive quiz interface with real-time feedback
+- Progress tracking and scoring system
+- Professional results page with restart functionality
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### 🛡️ **Security & UX**
+- Protected routes (authentication required for quiz access)
+- Public homepage (browse without signing in)
+- Smart navigation with intended destination preservation
+- Comprehensive error handling and user feedback
+
+### 📱 **Modern Tech Stack**
+- **React 19+**: Latest React with hooks and functional components
+- **Firebase**: Authentication, hosting-ready configuration
+- **React Router**: Client-side routing with protected routes
+- **Vite**: Fast development server and build tool
+- **Responsive Design**: Mobile-first, works on all devices
+
+## 🚀 Quick Start
+
+### **Prerequisites**
+- Node.js 18+ and npm
+- Firebase project with Auth enabled
+
+### **Installation**
+```bash
+# Clone and install
+git clone <repository-url>
+cd quiz-app
+npm install
+
+# Configure Firebase (create .env.local)
+cp .env.example .env.local
+# Add your Firebase configuration
+
+# Start development server
+npm run dev
+```
+
+### **Firebase Setup**
+1. Create a Firebase project at https://console.firebase.google.com
+2. Enable Authentication methods:
+   - **Google**: Add your domain to authorized domains
+   - **Phone**: Enable phone authentication 
+   - **Email/Password**: Enable email/password authentication
+3. Copy configuration to `.env.local`:
+
+```env
+VITE_FIREBASE_API_KEY=your_api_key
+VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your_project_id
+VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+VITE_FIREBASE_APP_ID=your_app_id
+```
+
+## 🌐 App Structure
+
+### **Routes**
+- `/` - Public homepage (no auth required)
+- `/login` - Authentication page (all methods)
+- `/quiz` - Quiz interface (protected)
+- `/results` - Quiz results (protected)
+
+### **Authentication Flow**
+1. Visit homepage freely without authentication
+2. Click "Start Quiz" to trigger sign-in requirement
+3. Choose from Google, Phone, or Email authentication
+4. Complete quiz and view results
+5. Automatic redirect to intended destination
+
+## 🛠️ Development
+
+### **Project Structure**
+```
+src/
+├── components/          # Reusable UI components
+│   ├── SignIn.jsx      # Multi-method auth component
+│   ├── Layout.jsx      # App layout with navbar
+│   └── ProtectedRoute.jsx
+├── pages/              # Route components
+│   ├── HomePage/       # Landing page
+│   ├── LoginPage/      # Authentication page
+│   ├── QuizPage/       # Quiz interface
+│   └── Results.jsx     # Results page
+├── auth/              # Authentication context
+│   └── AuthContext.jsx
+├── firebase/          # Firebase configuration
+│   └── config.js
+└── questions.js       # Quiz data
+```
+
+### **Available Scripts**
+```bash
+npm run dev          # Start development server
+npm run build        # Build for production
+npm run preview      # Preview production build
+npm run lint         # Run ESLint
+```
+
+## 🎯 Usage
+
+1. **Browse Freely**: Visit the homepage without authentication
+2. **Start Quiz**: Click "Start Quiz" to begin (triggers sign-in)
+3. **Authenticate**: Choose your preferred sign-in method
+4. **Take Quiz**: Answer questions with immediate feedback
+5. **View Results**: See your score and restart if desired
+
+## 🔧 Configuration
+
+### **Environment Variables**
+All Firebase configuration is handled through environment variables in `.env.local`. Never commit this file to version control.
+
+### **Customization**
+- **Quiz Questions**: Edit `src/questions.js`
+- **Styling**: Modify `src/App.css` and component CSS files
+- **Authentication**: Configure additional providers in Firebase Console
+
+## 📚 Dependencies
+
+### **Core**
+- React 19+ with Vite
+- React Router DOM (routing)
+- Firebase 12+ (authentication)
+
+### **Development**
+- ESLint (code quality)
+- Vite (build tool)
+
+## 🚀 Deployment
+
+Ready for deployment to:
+- **Firebase Hosting**: `npm run build && firebase deploy`
+- **Vercel**: Connect GitHub repository
+- **Netlify**: Deploy build folder
+- **Any static hosting**: Use `dist/` folder after `npm run build`
+
+## 📱 Browser Support
+
+- Modern browsers (Chrome, Firefox, Safari, Edge)
+- Mobile browsers (iOS Safari, Chrome Mobile)
+- PWA-ready for app-like experience
+
+---
+
+**Built with ❤️ using React, Firebase, and modern web technologies**

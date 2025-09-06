@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import Navbar from './Navbar/Navbar';
-import Toast from './Toast/Toast';
+import Navbar from './Navbar';
+import Toast from './Toast';
 import { useAuth } from '../auth/AuthContext';
 
 const Layout = () => {

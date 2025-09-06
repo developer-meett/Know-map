@@ -1,8 +1,56 @@
 import React, { useMemo, useState } from 'react';
-
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../auth/AuthContext';
-import { questions as defaultQuestions } from '../questions.js';
+          console.log(`Backup submission URL (if primary fails): ${backendUrl}`);
+          
+          // Prepare the request options
+          const requestOptions = {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${idToken}`
+            },
+            body: JSON.stringify({
+              quizId: quizId,
+              answers: answersObject
+            })
+          };
+          
+          // Try with the first URL format
+          try {
+            console.log("Trying primary URL format...");
+            const response = await fetch(submitUrl, requestOptions);
+            
+            if (!response.ok) {
+              const errorData = await response.text();
+              console.error(`Backend error with primary URL [${response.status}]:`, errorData);
+              
+              // Try the backup URL format
+              console.log("Primary URL failed, trying backup URL format...");
+              const backupResponse = await fetch(backendUrl, requestOptions);
+              
+              if (!backupResponse.ok) {
+                const backupErrorData = await backupResponse.text();
+                console.error(`Backend error with backup URL [${backupResponse.status}]:`, backupErrorData);
+                throw new Error(`Backend error: ${backupResponse.status} - ${backupErrorData}`);
+              }
+              
+              return backupResponse; // Return the successful backup response
+            }
+            
+            return response; // Return the successful primary response
+          } catch (fetchError) {
+            console.error("Fetch operation failed:", fetchError);
+            throw fetchError;
+          }
+          
+          // This code will not be reached due to the return statements above
+          const response = await fetch(submitUrl, requestOptions);
+
+          if (!response.ok) {
+            const errorData = await response.text();
+            console.error(`Backend error [${response.status}]:`, errorData);
+            throw new Error(`Backend error: ${response.status} - ${errorData}`);
+          }
 
 export default function Quiz({ items, onComplete }) {
   const navigate = useNavigate();
@@ -72,7 +120,8 @@ export default function Quiz({ items, onComplete }) {
           console.log(`Primary submission URL: ${submitUrl}`);
           console.log(`Backup submission URL (if primary fails): ${backendUrl}`);
           
-          const response = await fetch(submitUrl, {
+          // Prepare the request options
+          const requestOptions = {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -82,23 +131,48 @@ export default function Quiz({ items, onComplete }) {
               quizId: quizId,
               answers: answersObject
             })
-          });
-
-          if (!response.ok) {
-            const errorData = await response.text();
-            console.error(`Backend error [${response.status}]:`, errorData);
-            throw new Error(`Backend error: ${response.status} - ${errorData}`);
+          };
+          
+          let result;
+          
+          // Try with the first URL format
+          try {
+            console.log("Trying primary URL format...");
+            const response = await fetch(submitUrl, requestOptions);
+            
+            if (!response.ok) {
+              const errorData = await response.text();
+              console.error(`Backend error with primary URL [${response.status}]:`, errorData);
+              
+              // Try the backup URL format
+              console.log("Primary URL failed, trying backup URL format...");
+              const backupResponse = await fetch(backendUrl, requestOptions);
+              
+              if (!backupResponse.ok) {
+                const backupErrorData = await backupResponse.text();
+                console.error(`Backend error with backup URL [${backupResponse.status}]:`, backupErrorData);
+                throw new Error(`Backend error: ${backupResponse.status} - ${backupErrorData}`);
+              }
+              
+              // Process the successful backup response
+              result = await backupResponse.json();
+              console.log("Backend response (backup URL):", result);
+            } else {
+              // Process the successful primary response
+              result = await response.json();
+              console.log("Backend response (primary URL):", result);
+            }
+          } catch (fetchError) {
+            console.error("Fetch operation failed:", fetchError);
+            throw fetchError;
           }
-
-          const result = await response.json();
-          console.log("Backend response:", result);
           
           // Navigate to results page with report ID and full analysis
           navigate(`/results/${result.reportId}`, { 
             state: { 
               reportId: result.reportId,
               analysis: result.analysis,
-              report: result,
+              report: result,  // Include the full report data
               isBackendResult: true,
               message: 'Quiz submitted and analyzed successfully!'
             },
@@ -212,7 +286,7 @@ export default function Quiz({ items, onComplete }) {
           <h3 className="quiz-results-title">Processing Quiz...</h3>
         </div>
         <p className="quiz-score">
-          {import.meta.env.VITE_FIREBASE_FUNCTION_URL 
+          {import.meta.env.VITE_CLOUD_FUNCTION_URL 
             ? 'Analyzing your answers and generating your learning roadmap...'
             : 'Calculating your results locally...'
           }
@@ -269,7 +343,7 @@ export default function Quiz({ items, onComplete }) {
 
       {/* Show backend status */}
       <div style={{ marginTop: '1rem', fontSize: '0.8rem', color: '#666' }}>
-        {import.meta.env.VITE_FIREBASE_FUNCTION_URL 
+        {import.meta.env.VITE_CLOUD_FUNCTION_URL 
           ? '🔒 Secure backend grading enabled'
           : '⚠️ Running in frontend-only mode'
         }

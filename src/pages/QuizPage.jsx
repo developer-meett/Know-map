@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import Quiz from '../../components/Quiz/Quiz';
+import Quiz from '../components/Quiz';
 
 const QuizPage = () => {
   const navigate = useNavigate();

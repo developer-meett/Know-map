@@ -31,29 +31,71 @@ export function AuthProvider({ children }) {
 
   // Google Sign-In
   const googleSignIn = async () => {
-    const provider = new GoogleAuthProvider();
-    // Optional: prompt account selection each time
-    provider.setCustomParameters({ prompt: 'select_account' });
-    return signInWithPopup(auth, provider);
+    try {
+      const provider = new GoogleAuthProvider();
+      // Optional: prompt account selection each time
+      provider.setCustomParameters({ prompt: 'select_account' });
+      const result = await signInWithPopup(auth, provider);
+      return result;
+    } catch (error) {
+      throw error;
+    }
   };
 
   // Phone auth (OTP)
   const ensureRecaptcha = (containerId = 'recaptcha-container', size = 'invisible') => {
-    // Always (re)create a verifier for the requested container to avoid stale instances across pages
-    window.recaptchaVerifier = new RecaptchaVerifier(auth, containerId, { size });
-    return window.recaptchaVerifier;
+    try {
+      // Clear any existing verifier
+      if (window.recaptchaVerifier) {
+        try {
+          window.recaptchaVerifier.clear();
+        } catch (e) {
+          // Ignore clearing errors
+        }
+      }
+      
+      // Ensure the container exists
+      const container = document.getElementById(containerId);
+      if (!container) {
+        throw new Error(`reCAPTCHA container '${containerId}' not found`);
+      }
+      
+      window.recaptchaVerifier = new RecaptchaVerifier(auth, containerId, { 
+        size,
+        callback: () => {
+          // reCAPTCHA solved
+        },
+        'expired-callback': () => {
+          // reCAPTCHA expired
+        }
+      });
+      return window.recaptchaVerifier;
+    } catch (error) {
+      throw error;
+    }
   };
 
   const sendPhoneOtp = async (phoneNumber, containerId = 'recaptcha-container') => {
-    const verifier = ensureRecaptcha(containerId, 'invisible');
-    const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, verifier);
-    window.confirmationResult = confirmationResult;
-    return confirmationResult;
+    try {
+      const verifier = ensureRecaptcha(containerId, 'invisible');
+      const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, verifier);
+      window.confirmationResult = confirmationResult;
+      return confirmationResult;
+    } catch (error) {
+      throw error;
+    }
   };
 
   const verifyPhoneOtp = async (code) => {
-    if (!window.confirmationResult) throw new Error('No OTP session found. Please request a new code.');
-    return window.confirmationResult.confirm(code);
+    try {
+      if (!window.confirmationResult) {
+        throw new Error('No OTP session found. Please request a new code.');
+      }
+      const result = await window.confirmationResult.confirm(code);
+      return result;
+    } catch (error) {
+      throw error;
+    }
   };
 
   const value = { user, initializing, login, signup, logout, googleSignIn, sendPhoneOtp, verifyPhoneOtp };

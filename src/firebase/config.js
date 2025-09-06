@@ -1,5 +1,6 @@
 import { initializeApp, getApp, getApps } from "firebase/app";
 import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
 
 // Read from Vite env variables. Create a .env.local with these keys.
 const firebaseConfig = {
@@ -12,14 +13,14 @@ const firebaseConfig = {
 };
 
 if (!firebaseConfig.apiKey) {
-  // eslint-disable-next-line no-console
   console.warn(
-    "Firebase env variables are missing. Add them to .env.local (see .env.local.example) and restart the dev server."
+    "Firebase env variables are missing. Add them to .env.local and restart the dev server."
   );
 }
 
 // Initialize Firebase once (safe for Vite HMR)
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 const auth = getAuth(app);
+const db = getFirestore(app);
 
-export { app, auth };
+export { app, auth, db };

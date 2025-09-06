@@ -1,5 +1,4 @@
 import React, { useMemo, useState } from 'react';
-
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { questions as defaultQuestions } from '../questions.js';
@@ -43,107 +42,56 @@ export default function Quiz({ items, onComplete }) {
     
     try {
       // Check if backend is available
-      const backendUrl = import.meta.env.VITE_FIREBASE_FUNCTION_URL;
-      
-      console.log("Backend URL from env:", backendUrl);
+      const backendUrl = import.meta.env.VITE_CLOUD_FUNCTION_URL;
       
       if (backendUrl && user) {
         // Try backend submission
         try {
-          console.log("Attempting backend submission...");
           const idToken = await user.getIdToken();
-          console.log("Got user token, preparing data...");
           
-          // Prepare answers in the format expected by the backend
-          const answersObject = {};
-          finalAnswers.forEach((answerIndex, questionIndex) => {
-            answersObject[questionIndex.toString()] = answerIndex;
-          });
-          
-          const quizId = import.meta.env.VITE_QUIZ_ID || 'web-development-basics';
-          console.log(`Using Quiz ID: ${quizId}`);
-          
-          // For Firebase 2nd Gen functions, the URL patterns work differently
-          // Try both with and without /submitQuiz path to ensure compatibility
-          const submitUrl = backendUrl.endsWith('/submitQuiz') ? 
-            backendUrl : 
-            `${backendUrl}/submitQuiz`;
-            
-          console.log(`Primary submission URL: ${submitUrl}`);
-          console.log(`Backup submission URL (if primary fails): ${backendUrl}`);
-          
-          const response = await fetch(submitUrl, {
+          const response = await fetch(`${backendUrl}/submit_quiz`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${idToken}`
             },
             body: JSON.stringify({
-              quizId: quizId,
-              answers: answersObject
+              quizId: 'web-development-basics',
+              userAnswers: finalAnswers
             })
           });
 
           if (!response.ok) {
-            const errorData = await response.text();
-            console.error(`Backend error [${response.status}]:`, errorData);
-            throw new Error(`Backend error: ${response.status} - ${errorData}`);
+            throw new Error(`Backend error: ${response.status}`);
           }
 
           const result = await response.json();
-          console.log("Backend response:", result);
           
-          // Navigate to results page with report ID and full analysis
-          navigate(`/results/${result.reportId}`, { 
+          // Navigate to enhanced results with backend data
+          navigate('/results-enhanced', { 
             state: { 
               reportId: result.reportId,
-              analysis: result.analysis,
-              report: result,
-              isBackendResult: true,
-              message: 'Quiz submitted and analyzed successfully!'
+              overallScore: result.overallScore,
+              totalQuestions: result.totalQuestions,
+              correctAnswers: result.correctAnswers,
+              isBackendResult: true
             },
             replace: true 
           });
           return;
           
         } catch (backendError) {
-          console.error('Backend submission failed - DETAILED ERROR:', backendError);
-          console.error('Error message:', backendError.message);
-          console.error('Error stack:', backendError.stack);
-          setError(`Backend error: ${backendError.message}`);
+          console.warn('Backend submission failed, falling back to frontend:', backendError);
         }
       }
       
       // Fallback: Frontend-only processing
-      console.log("Using frontend fallback processing...");
       const results = calculateFrontendResults(finalAnswers);
       
-      // Create a complete report object similar to what the backend would return
-      const fallbackReport = {
-        overallPercentage: results.overallScore,
-        totalScore: results.correctAnswers,
-        totalQuestions: results.totalQuestions,
-        classifiedTopics: Object.entries(results.topicBreakdown).reduce((acc, [topic, data]) => {
-          const percentage = Math.round((data.correct / data.total) * 100);
-          acc[topic] = {
-            classification: percentage >= 80 ? "Mastered" : percentage >= 50 ? "Needs Revision" : "Learn from Scratch",
-            correct: data.correct,
-            total: data.total,
-            percentage: percentage
-          };
-          return acc;
-        }, {}),
-        submittedAt: new Date().toISOString(),
-        userAnswers: results.userAnswers
-      };
-      
-      console.log("Created fallback report:", fallbackReport);
-      
-      // Navigate to results with frontend-calculated data in a format consistent with backend
+      // Navigate to results with frontend-calculated data
       navigate('/results', { 
         state: { 
           ...results,
-          report: fallbackReport,
           isBackendResult: false,
           message: backendUrl ? 'Backend unavailable - showing local results' : 'Running in frontend-only mode'
         },
@@ -151,10 +99,8 @@ export default function Quiz({ items, onComplete }) {
       });
       
     } catch (error) {
-      console.error('Quiz submission failed - CRITICAL ERROR:', error);
-      console.error('Error stack:', error.stack);
+      console.error('Quiz submission failed:', error);
       setError('Failed to submit quiz. Please try again.');
-    } finally {
       setSubmitting(false);
     }
   };
@@ -212,7 +158,7 @@ export default function Quiz({ items, onComplete }) {
           <h3 className="quiz-results-title">Processing Quiz...</h3>
         </div>
         <p className="quiz-score">
-          {import.meta.env.VITE_FIREBASE_FUNCTION_URL 
+          {import.meta.env.VITE_CLOUD_FUNCTION_URL 
             ? 'Analyzing your answers and generating your learning roadmap...'
             : 'Calculating your results locally...'
           }
@@ -269,7 +215,7 @@ export default function Quiz({ items, onComplete }) {
 
       {/* Show backend status */}
       <div style={{ marginTop: '1rem', fontSize: '0.8rem', color: '#666' }}>
-        {import.meta.env.VITE_FIREBASE_FUNCTION_URL 
+        {import.meta.env.VITE_CLOUD_FUNCTION_URL 
           ? '🔒 Secure backend grading enabled'
           : '⚠️ Running in frontend-only mode'
         }

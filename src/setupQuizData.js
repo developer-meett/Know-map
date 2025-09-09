@@ -1,3 +1,4 @@
+import 'dotenv/config';
 /**
  * Setup Quiz Data in Firestore
  * 
@@ -30,61 +31,55 @@ async function setupQuizData() {
   console.log('🚀 Setting up quiz data in Firestore...');
 
   try {
-    // Create a batch for atomic operations
-    const batch = writeBatch(db);
-
-    // 1. Create the main quiz document
+    // Extract questions from imported quiz data
+    const questions = quizData.questions;
+    
+    // 1. Create the main quiz document first
     const quizRef = doc(db, 'quizzes', 'web-development-basics');
-    batch.set(quizRef, {
+    await setDoc(quizRef, {
       id: 'web-development-basics',
       title: 'Web Development Basics',
       description: 'Test your knowledge of HTML, CSS, and JavaScript fundamentals',
       totalQuestions: questions.length,
-      topics: [...new Set(questions.map(q => q.topic))], // Unique topics
-      createdAt: new Date(),
+      topics: ['JavaScript Frameworks', 'CSS Fundamentals', 'HTML Elements', 'JavaScript Fundamentals', 'CSS Styling', 'HTML Fundamentals', 'JavaScript Methods', 'HTML Structure', 'JavaScript Operators', 'JavaScript JSON'],
+      createdAt: new Date().toISOString(),
       version: '1.0'
     });
 
-    console.log(`📝 Creating quiz: Web Development Basics`);
+    console.log(`📝 Created quiz: Web Development Basics`);
 
-    // 2. Add each question as a separate document in a subcollection
-    questions.forEach((question, index) => {
+    // 2. Add each question individually (instead of batch)
+    for (let index = 0; index < questions.length; index++) {
+      const question = questions[index];
       const questionRef = doc(db, 'quizzes', 'web-development-basics', 'questions', question.id);
       
-      batch.set(questionRef, {
-        id: question.id,
-        order: question.order,
-        question: question.question,
-        options: question.options,
-        correctAnswer: question.correctAnswer, // ⚠️ SENSITIVE: Only for backend
-        topic: question.topic,
-        difficulty: 'beginner', // You can add difficulty levels later
-        createdAt: new Date()
-      });
+      // Clean and validate the question data
+      const cleanQuestionData = {
+        id: String(question.id),
+        order: Number(index),
+        question: String(question.question),
+        options: question.options.map(opt => String(opt)),
+        correctAnswer: Number(question.correctAnswer),
+        topic: String(question.topic),
+        difficulty: 'beginner',
+        createdAt: new Date().toISOString()
+      };
 
-      console.log(`  ✅ Q${index + 1}: ${question.topic} - ${question.question.substring(0, 50)}...`);
-    });
-
-    // 3. Commit the batch
-    await batch.commit();
+      await setDoc(questionRef, cleanQuestionData);
+      console.log(`  ✅ Q${index + 1}: ${cleanQuestionData.topic} - ${cleanQuestionData.question.substring(0, 50)}...`);
+    }
 
     console.log('🎉 Quiz data setup completed successfully!');
-    console.log(`� Added ${questions.length} questions across ${[...new Set(questions.map(q => q.topic))].length} topics:`);
-    
-    // Show topic summary
-    const topicCounts = {};
-    questions.forEach(q => {
-      topicCounts[q.topic] = (topicCounts[q.topic] || 0) + 1;
-    });
-
-    Object.entries(topicCounts).forEach(([topic, count]) => {
-      console.log(`  📚 ${topic}: ${count} questions`);
-    });
+    console.log(`📊 Added ${questions.length} questions across ${questions.length > 0 ? new Set(questions.map(q => q.topic)).size : 0} topics`);
 
     console.log('🔧 Next steps:');
     console.log('1. Deploy your Cloud Function: firebase deploy --only functions');
-    console.log('2. Update .env.local with your function URL');
+    console.log('2. Update .env with your function URL');
     console.log('3. Test the quiz in your application');
+
+    // Print the Quiz ID for frontend configuration
+    console.log(`\n🆔 QUIZ ID: web-development-basics`);
+    console.log('👆 Copy this ID - you will need it for the .env configuration!');
 
     process.exit(0);
 

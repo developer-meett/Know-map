@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import Quiz from '../components/Quiz';
+import './styles/QuizPage.module.css';
 
 const QuizPage = () => {
   const navigate = useNavigate();

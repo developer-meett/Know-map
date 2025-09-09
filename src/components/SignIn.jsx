@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
-import './SignIn.css';
+import { logger } from '../utils/logger';
+import { MIN_PASSWORD_LENGTH, ERROR_MESSAGES, SUCCESS_MESSAGES } from '../utils/constants';
+import './styles/SignIn.css';
 
 // Country codes data
 const countryCodes = [
@@ -58,19 +60,35 @@ const SignIn = () => {
     setConfirmPassword('');
   }, [authMethod, isSignUp]);
 
-  const handleEmailAuth = async () => {
+  // Email validation helper
+  const validateEmail = useCallback((email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  }, []);
+
+  // Password validation helper
+  const validatePassword = useCallback((password) => {
+    return password.length >= MIN_PASSWORD_LENGTH;
+  }, []);
+
+  const handleEmailAuth = useCallback(async () => {
     if (!email || !password) {
-      setError('Please fill in all fields.');
+      setError(ERROR_MESSAGES.REQUIRED_FIELD);
+      return;
+    }
+
+    if (!validateEmail(email)) {
+      setError(ERROR_MESSAGES.INVALID_EMAIL);
       return;
     }
 
     if (isSignUp && password !== confirmPassword) {
-      setError('Passwords do not match.');
+      setError(ERROR_MESSAGES.PASSWORDS_DONT_MATCH);
       return;
     }
 
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters long.');
+    if (!validatePassword(password)) {
+      setError(ERROR_MESSAGES.WEAK_PASSWORD);
       return;
     }
 
@@ -81,16 +99,16 @@ const SignIn = () => {
     try {
       if (isSignUp) {
         await signup(email, password);
-        setMessage('Account created successfully!');
+        setMessage(SUCCESS_MESSAGES.ACCOUNT_CREATED);
       } else {
         await login(email, password);
-        setMessage('Successfully signed in!');
+        setMessage(SUCCESS_MESSAGES.SIGNED_IN);
       }
       
       // Navigate to intended destination
       setTimeout(() => navigate(from, { replace: true }), 1000);
     } catch (error) {
-      console.error('Email auth error:', error);
+      logger.error('Email auth error:', error);
       if (error.code === 'auth/user-not-found') {
         setError('No account found with this email. Please sign up first.');
       } else if (error.code === 'auth/wrong-password') {
@@ -98,21 +116,18 @@ const SignIn = () => {
       } else if (error.code === 'auth/email-already-in-use') {
         setError('An account with this email already exists. Please sign in instead.');
       } else if (error.code === 'auth/invalid-email') {
-        setError('Please enter a valid email address.');
+        setError(ERROR_MESSAGES.INVALID_EMAIL);
       } else if (error.code === 'auth/weak-password') {
-        setError('Password is too weak. Please choose a stronger password.');
-      } else if (error.code === 'auth/invalid-api-key') {
-        setError('Firebase not configured. Please check FIREBASE_SETUP.md');
+        setError(ERROR_MESSAGES.WEAK_PASSWORD);
       } else {
-        setError(isSignUp ? 'Failed to create account. Please try again.' : 'Failed to sign in. Please try again.');
+        setError(isSignUp ? 'Failed to create account. Please try again.' : ERROR_MESSAGES.AUTH_FAILED);
       }
-      setMessage('');
     } finally {
       setLoading(false);
     }
-  };
+  }, [email, password, confirmPassword, isSignUp, validateEmail, validatePassword, signup, login, navigate, from]);
 
-  const handleGoogleSignIn = async () => {
+  const handleGoogleSignIn = useCallback(async () => {
     setLoading(true);
     setError('');
     setMessage('Signing in with Google...');
@@ -121,7 +136,7 @@ const SignIn = () => {
       setMessage('Successfully signed in with Google!');
       setTimeout(() => navigate(from, { replace: true }), 1000);
     } catch (error) {
-      console.error('Google sign-in error:', error);
+      logger.error('Google sign-in error:', error);
       
       if (error.code === 'auth/popup-closed-by-user') {
         setError('Sign-in was cancelled. Please try again.');
@@ -134,20 +149,20 @@ const SignIn = () => {
       } else if (error.code === 'auth/unauthorized-domain') {
         setError('This domain is not authorized. Please contact support.');
       } else {
-        setError('Failed to sign in with Google. Please try again.');
+        setError(ERROR_MESSAGES.AUTH_FAILED);
       }
       setMessage('');
     } finally {
       setLoading(false);
     }
-  };
+  }, [googleSignIn, navigate, from]);
 
-  const handlePhoneNumberChange = (e) => {
+  const handlePhoneNumberChange = useCallback((e) => {
     const value = e.target.value.replace(/\D/g, ''); // Only allow digits
     setPhoneNumber(value);
-  };
+  }, []);
 
-  const handleSendOtp = async () => {
+  const handleSendOtp = useCallback(async () => {
     if (!phoneNumber || phoneNumber.length < 10) {
       setError('Please enter a valid phone number.');
       return;
@@ -182,7 +197,7 @@ const SignIn = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [sendPhoneOtp, selectedCountry.code, phoneNumber]);
 
   const handleVerifyOtp = async () => {
     if (!otpCode || otpCode.length !== 6) {

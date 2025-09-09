@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
+import { logger } from '../utils/logger';
+import './styles/Results.css';
 
 const ResultsPage = () => {
   const location = useLocation();
@@ -11,8 +13,8 @@ const ResultsPage = () => {
   const [reportData, setReportData] = useState(null);
   const [error, setError] = useState('');
   
-  console.log("Results page state:", location.state);
-  console.log("Report ID from URL:", reportId);
+  logger.debug("Results page state:", location.state);
+  logger.debug("Report ID from URL:", reportId);
 
   // Fetch report data from Firestore if we have a reportId but no state
   useEffect(() => {
@@ -22,20 +24,20 @@ const ResultsPage = () => {
         setError('');
         
         try {
-          console.log("Fetching report data for ID:", reportId);
+          logger.log("Fetching report data for ID:", reportId);
           const reportDocRef = doc(db, 'quiz_reports', reportId);
           const reportDoc = await getDoc(reportDocRef);
           
           if (reportDoc.exists()) {
             const data = reportDoc.data();
-            console.log("Fetched report data:", data);
+            logger.debug("Fetched report data:", data);
             setReportData(data);
           } else {
-            console.error("No report found with ID:", reportId);
+            logger.warn("No report found with ID:", reportId);
             setError('Report not found');
           }
         } catch (err) {
-          console.error("Error fetching report:", err);
+          logger.error("Error fetching report:", err);
           setError('Failed to load report');
         } finally {
           setLoading(false);
@@ -91,7 +93,7 @@ const ResultsPage = () => {
 
   // Redirect to home if no data available
   if (!dataSource) {
-    console.error("No results data found");
+    logger.error("No results data found");
     navigate('/');
     return null;
   }
@@ -117,7 +119,7 @@ const ResultsPage = () => {
   
   const currentReportId = state.reportId || reportId || 'local';
 
-  console.log("Processed results data:", { 
+  logger.debug("Processed results data:", { 
     overallScore, totalQuestions, correctAnswers, isBackendResult, currentReportId
   });
   
@@ -130,7 +132,7 @@ const ResultsPage = () => {
     ? classifiedTopics 
     : topicBreakdown;
     
-  console.log("Topic data:", topicData);
+  logger.debug("Topic data:", topicData);
 
   const handleRestartQuiz = () => {
     navigate('/quiz');

@@ -1,8 +1,10 @@
-import React, { useMemo, useState } from 'react';
-
+import React, { useMemo, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
-import { questions as defaultQuestions } from '../questions.js';
+import { questions as defaultQuestions } from '../data/quiz-public.js';
+import { logger } from '../utils/logger';
+import { QUIZ_CONFIG, ERROR_MESSAGES } from '../utils/constants';
+import './styles/Quiz.module.css';
 
 export default function Quiz({ items, onComplete }) {
   const navigate = useNavigate();
@@ -19,9 +21,9 @@ export default function Quiz({ items, onComplete }) {
   const total = qs.length;
   const isLast = current === total - 1;
 
-  const handleSelect = (idx) => setSelected(idx);
+  const handleSelect = useCallback((idx) => setSelected(idx), []);
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     if (selected === null) return;
     
     // Store the user's answer
@@ -35,9 +37,9 @@ export default function Quiz({ items, onComplete }) {
       setCurrent((c) => c + 1);
       setSelected(null);
     }
-  };
+  }, [selected, userAnswers, isLast]);
 
-  const processResults = async (finalAnswers) => {
+  const processResults = useCallback(async (finalAnswers) => {
     setSubmitting(true);
     setError('');
     
@@ -45,32 +47,52 @@ export default function Quiz({ items, onComplete }) {
       // Check if backend is available
       const backendUrl = import.meta.env.VITE_FIREBASE_FUNCTION_URL;
       
-      console.log("Backend URL from env:", backendUrl);
+      logger.log("=== QUIZ SUBMISSION DEBUG ===");
+      logger.log("Backend URL from env:", backendUrl);
+      logger.log("User object:", user);
+      logger.log("User email:", user?.email);
+      logger.debug("All env vars:", {
+        VITE_FIREBASE_FUNCTION_URL: import.meta.env.VITE_FIREBASE_FUNCTION_URL,
+        VITE_QUIZ_ID: import.meta.env.VITE_QUIZ_ID,
+        VITE_FIREBASE_PROJECT_ID: import.meta.env.VITE_FIREBASE_PROJECT_ID
+      });
       
       if (backendUrl && user) {
         // Try backend submission
         try {
-          console.log("Attempting backend submission...");
+          logger.log("Attempting backend submission...");
           const idToken = await user.getIdToken();
-          console.log("Got user token, preparing data...");
+          logger.log("Got user token, preparing data...");
           
           // Prepare answers in the format expected by the backend
+          // Make sure all answers are sent as numbers, not strings
           const answersObject = {};
           finalAnswers.forEach((answerIndex, questionIndex) => {
-            answersObject[questionIndex.toString()] = answerIndex;
+            // Convert answer to number to ensure consistent type for backend comparison
+            const numericAnswer = parseInt(answerIndex, 10);
+            answersObject[questionIndex.toString()] = numericAnswer;
           });
           
-          const quizId = import.meta.env.VITE_QUIZ_ID || 'web-development-basics';
-          console.log(`Using Quiz ID: ${quizId}`);
+          const quizId = import.meta.env.VITE_QUIZ_ID || QUIZ_CONFIG.DEFAULT_QUIZ_ID;
+          logger.log(`Using Quiz ID: ${quizId}`);
           
-          // For Firebase 2nd Gen functions, the URL patterns work differently
-          // Try both with and without /submitQuiz path to ensure compatibility
-          const submitUrl = backendUrl.endsWith('/submitQuiz') ? 
-            backendUrl : 
-            `${backendUrl}/submitQuiz`;
+          // Firebase Cloud Functions have a specific URL structure
+          // The path is important - it needs to match exactly what the function expects
+          
+          // Remove trailing slashes from backend URL if present
+          const cleanBackendUrl = backendUrl.replace(/\/+$/, '');
+          
+          // Create the submission URL with the exact path expected by the backend
+          const submitUrl = `${cleanBackendUrl}/submitQuiz`;
             
-          console.log(`Primary submission URL: ${submitUrl}`);
-          console.log(`Backup submission URL (if primary fails): ${backendUrl}`);
+          logger.debug(`Submission URL: ${submitUrl}`);
+          logger.debug(`Base backend URL: ${cleanBackendUrl}`);
+          logger.debug("Request payload:", {
+            quizId: quizId,
+            answers: answersObject
+          });
+          // Don't log sensitive token info even in development
+          logger.debug("Auth token present:", !!idToken);
           
           const response = await fetch(submitUrl, {
             method: 'POST',
@@ -84,14 +106,31 @@ export default function Quiz({ items, onComplete }) {
             })
           });
 
-          if (!response.ok) {
-            const errorData = await response.text();
-            console.error(`Backend error [${response.status}]:`, errorData);
-            throw new Error(`Backend error: ${response.status} - ${errorData}`);
+          // Get the response text/json
+          let errorData;
+          let result;
+          
+          try {
+            // Try to parse as JSON first
+            const text = await response.text();
+            try {
+              result = JSON.parse(text);
+              logger.log("Response parsed as JSON:", result);
+            } catch (e) {
+              // If not JSON, use as text
+              logger.warn("Response is not JSON:", text);
+              errorData = text;
+            }
+          } catch (e) {
+            logger.error("Error reading response:", e);
           }
-
-          const result = await response.json();
-          console.log("Backend response:", result);
+          
+          if (!response.ok) {
+            const errorMessage = result?.error || errorData || `HTTP Error ${response.status}`;
+            logger.error(`Backend error [${response.status}]:`, errorMessage);
+            throw new Error(`Backend error: ${response.status} - ${errorMessage}`);
+          }
+          logger.log("Backend response:", result);
           
           // Navigate to results page with report ID and full analysis
           navigate(`/results/${result.reportId}`, { 
@@ -107,15 +146,15 @@ export default function Quiz({ items, onComplete }) {
           return;
           
         } catch (backendError) {
-          console.error('Backend submission failed - DETAILED ERROR:', backendError);
-          console.error('Error message:', backendError.message);
-          console.error('Error stack:', backendError.stack);
+          logger.error('Backend submission failed - DETAILED ERROR:', backendError);
+          logger.error('Error message:', backendError.message);
+          logger.debug('Error stack:', backendError.stack);
           setError(`Backend error: ${backendError.message}`);
         }
       }
       
       // Fallback: Frontend-only processing
-      console.log("Using frontend fallback processing...");
+      logger.log("Using frontend fallback processing...");
       const results = calculateFrontendResults(finalAnswers);
       
       // Create a complete report object similar to what the backend would return
@@ -126,7 +165,8 @@ export default function Quiz({ items, onComplete }) {
         classifiedTopics: Object.entries(results.topicBreakdown).reduce((acc, [topic, data]) => {
           const percentage = Math.round((data.correct / data.total) * 100);
           acc[topic] = {
-            classification: percentage >= 80 ? "Mastered" : percentage >= 50 ? "Needs Revision" : "Learn from Scratch",
+            classification: percentage >= QUIZ_CONFIG.MASTERY_THRESHOLD * 100 ? "Mastered" : 
+                          percentage >= QUIZ_CONFIG.REVISION_THRESHOLD * 100 ? "Needs Revision" : "Learn from Scratch",
             correct: data.correct,
             total: data.total,
             percentage: percentage
@@ -137,7 +177,7 @@ export default function Quiz({ items, onComplete }) {
         userAnswers: results.userAnswers
       };
       
-      console.log("Created fallback report:", fallbackReport);
+      logger.debug("Created fallback report:", fallbackReport);
       
       // Navigate to results with frontend-calculated data in a format consistent with backend
       navigate('/results', { 
@@ -151,13 +191,13 @@ export default function Quiz({ items, onComplete }) {
       });
       
     } catch (error) {
-      console.error('Quiz submission failed - CRITICAL ERROR:', error);
-      console.error('Error stack:', error.stack);
-      setError('Failed to submit quiz. Please try again.');
+      logger.error('Quiz submission failed - CRITICAL ERROR:', error);
+      logger.debug('Error stack:', error.stack);
+      setError(ERROR_MESSAGES.QUIZ_SUBMIT_FAILED);
     } finally {
       setSubmitting(false);
     }
-  };
+  }, [user, navigate]);
 
   const calculateFrontendResults = (finalAnswers) => {
     let correctCount = 0;

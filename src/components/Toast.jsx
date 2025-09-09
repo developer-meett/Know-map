@@ -1,4 +1,5 @@
 import React from 'react';
+import './styles/Toast.module.css';
 
 const Toast = ({ message, visible }) => {
   return (

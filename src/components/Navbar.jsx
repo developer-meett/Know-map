@@ -1,5 +1,6 @@
 import React from 'react';
 import { useAuth } from '../auth/AuthContext';
+import './styles/Navbar.module.css';
 
 const Navbar = ({ onLoginClick, onBackClick, currentPage, showBackButton }) => {
   const { user, logout } = useAuth();

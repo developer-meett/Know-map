@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { auth } from '../firebase/config';
 import {
   onAuthStateChanged,
@@ -10,19 +10,37 @@ import {
   RecaptchaVerifier,
   signInWithPhoneNumber,
 } from 'firebase/auth';
+import { logger } from '../utils/logger';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [initializing, setInitializing] = useState(true);
+  
+  // Use refs instead of global variables to prevent memory leaks
+  const recaptchaVerifierRef = useRef(null);
+  const confirmationResultRef = useRef(null);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u);
       setInitializing(false);
     });
-    return () => unsub();
+    
+    // Cleanup function
+    return () => {
+      unsub();
+      // Clean up reCAPTCHA verifier on unmount
+      if (recaptchaVerifierRef.current) {
+        try {
+          recaptchaVerifierRef.current.clear();
+        } catch (e) {
+          logger.warn('Error clearing reCAPTCHA verifier:', e);
+        }
+        recaptchaVerifierRef.current = null;
+      }
+    };
   }, []);
 
   const login = (email, password) => signInWithEmailAndPassword(auth, email, password);
@@ -38,6 +56,7 @@ export function AuthProvider({ children }) {
       const result = await signInWithPopup(auth, provider);
       return result;
     } catch (error) {
+      logger.error('Google sign-in failed:', error);
       throw error;
     }
   };
@@ -46,11 +65,11 @@ export function AuthProvider({ children }) {
   const ensureRecaptcha = (containerId = 'recaptcha-container', size = 'invisible') => {
     try {
       // Clear any existing verifier
-      if (window.recaptchaVerifier) {
+      if (recaptchaVerifierRef.current) {
         try {
-          window.recaptchaVerifier.clear();
+          recaptchaVerifierRef.current.clear();
         } catch (e) {
-          // Ignore clearing errors
+          logger.warn('Error clearing existing reCAPTCHA verifier:', e);
         }
       }
       
@@ -60,17 +79,18 @@ export function AuthProvider({ children }) {
         throw new Error(`reCAPTCHA container '${containerId}' not found`);
       }
       
-      window.recaptchaVerifier = new RecaptchaVerifier(auth, containerId, { 
+      recaptchaVerifierRef.current = new RecaptchaVerifier(auth, containerId, { 
         size,
         callback: () => {
-          // reCAPTCHA solved
+          logger.debug('reCAPTCHA solved');
         },
         'expired-callback': () => {
-          // reCAPTCHA expired
+          logger.warn('reCAPTCHA expired');
         }
       });
-      return window.recaptchaVerifier;
+      return recaptchaVerifierRef.current;
     } catch (error) {
+      logger.error('Error setting up reCAPTCHA:', error);
       throw error;
     }
   };
@@ -79,21 +99,25 @@ export function AuthProvider({ children }) {
     try {
       const verifier = ensureRecaptcha(containerId, 'invisible');
       const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, verifier);
-      window.confirmationResult = confirmationResult;
+      confirmationResultRef.current = confirmationResult;
       return confirmationResult;
     } catch (error) {
+      logger.error('Error sending phone OTP:', error);
       throw error;
     }
   };
 
   const verifyPhoneOtp = async (code) => {
     try {
-      if (!window.confirmationResult) {
+      if (!confirmationResultRef.current) {
         throw new Error('No OTP session found. Please request a new code.');
       }
-      const result = await window.confirmationResult.confirm(code);
+      const result = await confirmationResultRef.current.confirm(code);
+      // Clear the confirmation result after successful verification
+      confirmationResultRef.current = null;
       return result;
     } catch (error) {
+      logger.error('Error verifying phone OTP:', error);
       throw error;
     }
   };

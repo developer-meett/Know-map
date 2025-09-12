@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
-import { auth } from '../firebase/config';
+import { auth, db } from '../firebase/config';
 import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
@@ -10,6 +10,7 @@ import {
   RecaptchaVerifier,
   signInWithPhoneNumber,
 } from 'firebase/auth';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { logger } from '../utils/logger';
 
 const AuthContext = createContext(null);
@@ -44,8 +45,36 @@ export function AuthProvider({ children }) {
   }, []);
 
   const login = (email, password) => signInWithEmailAndPassword(auth, email, password);
-  const signup = (email, password) => createUserWithEmailAndPassword(auth, email, password);
+  
+  const signup = async (email, password) => {
+    try {
+      const result = await createUserWithEmailAndPassword(auth, email, password);
+      // Create user document in Firestore
+      await createUserDocument(result.user);
+      return result;
+    } catch (error) {
+      logger.error('Signup failed:', error);
+      throw error;
+    }
+  };
+  
   const logout = () => signOut(auth);
+
+  // Create user document in Firestore
+  const createUserDocument = async (user) => {
+    try {
+      const userRef = doc(db, 'users', user.uid);
+      await setDoc(userRef, {
+        email: user.email,
+        role: 'student', // Default role
+        createdAt: serverTimestamp(),
+        lastLoginAt: serverTimestamp(),
+      }, { merge: true }); // Use merge to avoid overwriting existing data
+      logger.debug('User document created/updated:', user.uid);
+    } catch (error) {
+      logger.error('Error creating user document:', error);
+    }
+  };
 
   // Google Sign-In
   const googleSignIn = async () => {
@@ -54,6 +83,8 @@ export function AuthProvider({ children }) {
       // Optional: prompt account selection each time
       provider.setCustomParameters({ prompt: 'select_account' });
       const result = await signInWithPopup(auth, provider);
+      // Create user document for Google sign-in users too
+      await createUserDocument(result.user);
       return result;
     } catch (error) {
       logger.error('Google sign-in failed:', error);
@@ -113,6 +144,8 @@ export function AuthProvider({ children }) {
         throw new Error('No OTP session found. Please request a new code.');
       }
       const result = await confirmationResultRef.current.confirm(code);
+      // Create user document for phone auth users too
+      await createUserDocument(result.user);
       // Clear the confirmation result after successful verification
       confirmationResultRef.current = null;
       return result;

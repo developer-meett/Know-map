@@ -67,6 +67,9 @@ def analyze_quiz_performance(user_answers, quiz_questions):
         total_score = 0
         total_questions = len(quiz_questions)
         
+        # Question breakdown tracking for detailed review
+        question_breakdown = []
+        
         # Process each question
         for i, question in enumerate(quiz_questions):
             # Log the question structure for debugging
@@ -133,6 +136,17 @@ def analyze_quiz_performance(user_answers, quiz_questions):
                 topic_stats[topic]['total'] += 1
                 if is_correct:
                     topic_stats[topic]['correct'] += 1
+            
+            # Build question breakdown for detailed review
+            question_breakdown.append({
+                'questionId': question.get('id', f'q_{i}'),
+                'questionText': question.get('question', question.get('text', 'Unknown question')),
+                'topic': topics[0] if topics else 'General',  # Use first topic for display
+                'userAnswer': user_answer,
+                'correctAnswer': correct_answer,
+                'isCorrect': is_correct,
+                'options': question.get('options', [])  # Include full options array
+            })
         
         # Classify topics
         classified_topics = {}
@@ -156,6 +170,7 @@ def analyze_quiz_performance(user_answers, quiz_questions):
             'totalQuestions': total_questions,
             'overallPercentage': overall_percentage,
             'classifiedTopics': classified_topics,
+            'questionBreakdown': question_breakdown,
             'detailedAnswers': []  # Could be expanded for detailed answer analysis
         }
         

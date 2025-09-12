@@ -6,10 +6,24 @@ import { logger } from '../utils/logger';
 import { QUIZ_CONFIG, ERROR_MESSAGES } from '../utils/constants';
 import './styles/Quiz.module.css';
 
-export default function Quiz({ items, onComplete }) {
+export default function Quiz({ items, onComplete, quizData, onBack }) {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const qs = useMemo(() => (Array.isArray(items) && items.length ? items : defaultQuestions), [items]);
+  
+  // Use quizData.questions if provided, otherwise fall back to items or defaultQuestions
+  const qs = useMemo(() => {
+    if (quizData && quizData.questions && quizData.questions.length > 0) {
+      // Convert admin-created quiz format to the format expected by the Quiz component
+      return quizData.questions.map((q, index) => ({
+        id: q.id || `q${index}`,
+        question: q.question,
+        options: q.options,
+        correctAnswer: q.correct, // Map 'correct' to 'correctAnswer'
+        topic: q.topic || 'General'
+      }));
+    }
+    return Array.isArray(items) && items.length ? items : defaultQuestions;
+  }, [items, quizData]);
   
   const [current, setCurrent] = useState(0);
   const [selected, setSelected] = useState(null);
@@ -73,8 +87,10 @@ export default function Quiz({ items, onComplete }) {
             answersObject[questionIndex.toString()] = numericAnswer;
           });
           
-          const quizId = import.meta.env.VITE_QUIZ_ID || QUIZ_CONFIG.DEFAULT_QUIZ_ID;
+          // Use dynamic quiz ID if available, otherwise fall back to env var
+          const quizId = quizData?.id || import.meta.env.VITE_QUIZ_ID || QUIZ_CONFIG.DEFAULT_QUIZ_ID;
           logger.log(`Using Quiz ID: ${quizId}`);
+          logger.log(`Quiz title: ${quizData?.title || 'Default Quiz'}`);
           
           // Firebase Cloud Functions have a specific URL structure
           // The path is important - it needs to match exactly what the function expects
@@ -164,11 +180,21 @@ export default function Quiz({ items, onComplete }) {
         totalQuestions: results.totalQuestions,
         classifiedTopics: Object.entries(results.topicBreakdown).reduce((acc, [topic, data]) => {
           const percentage = Math.round((data.correct / data.total) * 100);
+          
+          // If any "Don't Know" answers exist for this topic, automatically classify as "Learn from Scratch"
+          let classification;
+          if (data.dontKnow && data.dontKnow > 0) {
+            classification = "Learn from Scratch";
+          } else {
+            classification = percentage >= QUIZ_CONFIG.MASTERY_THRESHOLD * 100 ? "Mastered" : 
+                          percentage >= QUIZ_CONFIG.REVISION_THRESHOLD * 100 ? "Needs Revision" : "Learn from Scratch";
+          }
+          
           acc[topic] = {
-            classification: percentage >= QUIZ_CONFIG.MASTERY_THRESHOLD * 100 ? "Mastered" : 
-                          percentage >= QUIZ_CONFIG.REVISION_THRESHOLD * 100 ? "Needs Revision" : "Learn from Scratch",
+            classification: classification,
             correct: data.correct,
             total: data.total,
+            dontKnow: data.dontKnow || 0,
             percentage: percentage
           };
           return acc;
@@ -205,7 +231,9 @@ export default function Quiz({ items, onComplete }) {
     
     finalAnswers.forEach((answerIndex, questionIndex) => {
       const question = qs[questionIndex];
-      const isCorrect = answerIndex === question.correctAnswer;
+      // Handle "Don't Know" answers (-1) as automatically incorrect
+      const isCorrect = answerIndex !== -1 && answerIndex === question.correctAnswer;
+      const isDontKnow = answerIndex === -1;
       
       if (isCorrect) {
         correctCount++;
@@ -214,11 +242,14 @@ export default function Quiz({ items, onComplete }) {
       // Track topic performance
       const topic = question.topic || 'General';
       if (!topicScores[topic]) {
-        topicScores[topic] = { correct: 0, total: 0 };
+        topicScores[topic] = { correct: 0, total: 0, dontKnow: 0 };
       }
       topicScores[topic].total++;
       if (isCorrect) {
         topicScores[topic].correct++;
+      }
+      if (isDontKnow) {
+        topicScores[topic].dontKnow = (topicScores[topic].dontKnow || 0) + 1;
       }
     });
     
@@ -275,6 +306,21 @@ export default function Quiz({ items, onComplete }) {
 
   return (
     <div className="quiz-container">
+      {/* Quiz Header with Back Button and Title */}
+      <div className="quiz-meta-header">
+        {onBack && (
+          <button className="quiz-back-btn" onClick={onBack}>
+            ← Back to Quiz Selection
+          </button>
+        )}
+        <div className="quiz-info">
+          <h2 className="quiz-main-title">{quizData?.title || 'Quiz'}</h2>
+          {quizData?.description && (
+            <p className="quiz-description">{quizData.description}</p>
+          )}
+        </div>
+      </div>
+
       <div className="quiz-header">
         <h3 className="quiz-title">Question {current + 1}</h3>
         <div className="quiz-progress">({current + 1} / {total})</div>
@@ -294,6 +340,15 @@ export default function Quiz({ items, onComplete }) {
             {opt}
           </button>
         ))}
+        {/* Don't Know option - always index -1 */}
+        <button
+          type="button"
+          onClick={() => handleSelect(-1)}
+          aria-pressed={selected === -1}
+          className={`quiz-option quiz-option-dont-know ${selected === -1 ? 'quiz-option-selected' : ''}`}
+        >
+          🤷 Don't Know
+        </button>
       </div>
 
       <div className="quiz-footer">

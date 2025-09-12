@@ -25,7 +25,7 @@ const ResultsPage = () => {
         
         try {
           logger.log("Fetching report data for ID:", reportId);
-          const reportDocRef = doc(db, 'quiz_reports', reportId);
+          const reportDocRef = doc(db, 'reports', reportId);
           const reportDoc = await getDoc(reportDocRef);
           
           if (reportDoc.exists()) {
@@ -127,12 +127,16 @@ const ResultsPage = () => {
   const topicBreakdown = state.topicBreakdown || {};
   const classifiedTopics = report.classifiedTopics || analysis.classifiedTopics || {};
   
+  // Question breakdown for detailed review
+  const questionBreakdown = report.questionBreakdown || analysis.questionBreakdown || [];
+  
   // Convert classifiedTopics to topicBreakdown format if needed
   const topicData = Object.keys(classifiedTopics).length > 0 
     ? classifiedTopics 
     : topicBreakdown;
     
   logger.debug("Topic data:", topicData);
+  logger.debug("Question breakdown:", questionBreakdown);
 
   const handleRestartQuiz = () => {
     navigate('/quiz');
@@ -178,6 +182,7 @@ const ResultsPage = () => {
                 const topicPercentage = data.percentage || Math.round((data.correct / data.total) * 100);
                 const correct = data.correct || 0;
                 const total = data.total || 1;
+                const dontKnow = data.dontKnow || 0;
                 const classification = data.classification || 
                   (topicPercentage >= 80 ? 'Mastered' : 
                    topicPercentage >= 50 ? 'Needs Revision' : 
@@ -185,7 +190,9 @@ const ResultsPage = () => {
                 
                 return (
                   <div key={topic} style={{ margin: '0.5rem 0', padding: '0.5rem', backgroundColor: '#f5f5f5', borderRadius: '4px' }}>
-                    <strong>{topic}:</strong> {correct}/{total} ({topicPercentage}%) - <em>{classification}</em>
+                    <strong>{topic}:</strong> {correct}/{total} ({topicPercentage}%)
+                    {dontKnow > 0 && <span style={{ color: '#FF6B6B', fontSize: '0.9rem' }}> • {dontKnow} "Don't Know"</span>}
+                    <span style={{ marginLeft: '0.5rem' }}>- <em>{classification}</em></span>
                     <div style={{ 
                       width: '100%', 
                       height: '8px', 
@@ -203,6 +210,77 @@ const ResultsPage = () => {
                   </div>
                 );
               })}
+            </div>
+          )}
+
+          {/* Detailed Question Review (if available) */}
+          {questionBreakdown.length > 0 && (
+            <div style={{ margin: '2rem 0', textAlign: 'left' }}>
+              <h4>Detailed Question Review:</h4>
+              <div style={{ marginTop: '1rem' }}>
+                {questionBreakdown.map((question, index) => {
+                  const isCorrect = question.isCorrect;
+                  const cardStyle = {
+                    margin: '1rem 0',
+                    padding: '1rem',
+                    border: `2px solid ${isCorrect ? '#4CAF50' : '#F44336'}`,
+                    backgroundColor: isCorrect ? '#f8fff8' : '#fff8f8',
+                    borderRadius: '8px',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                  };
+
+                  return (
+                    <div key={question.questionId || index} style={cardStyle}>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                        <span style={{ 
+                          fontSize: '1.2rem', 
+                          color: isCorrect ? '#4CAF50' : '#F44336',
+                          minWidth: '24px'
+                        }}>
+                          {isCorrect ? '✔️' : '❌'}
+                        </span>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ marginBottom: '0.5rem' }}>
+                            <strong>Question {index + 1}:</strong> {question.questionText}
+                          </div>
+                          <div style={{ 
+                            fontSize: '0.9rem', 
+                            color: '#666', 
+                            marginBottom: '0.5rem',
+                            fontStyle: 'italic'
+                          }}>
+                            Topic: {question.topic}
+                          </div>
+                          <div style={{ marginBottom: '0.25rem' }}>
+                            <strong>Your Answer:</strong> {(() => {
+                              if (question.userAnswer === null || question.userAnswer === undefined) {
+                                return 'No answer';
+                              } else if (question.userAnswer === -1) {
+                                return "Don't Know";
+                              } else if (question.options && question.options[question.userAnswer]) {
+                                return question.options[question.userAnswer];
+                              } else {
+                                return `Option ${parseInt(question.userAnswer) + 1}`;
+                              }
+                            })()}
+                          </div>
+                          {!isCorrect && (
+                            <div style={{ color: '#666' }}>
+                              <strong>Correct Answer:</strong> {(() => {
+                                if (question.options && question.options[question.correctAnswer]) {
+                                  return question.options[question.correctAnswer];
+                                } else {
+                                  return `Option ${parseInt(question.correctAnswer) + 1}`;
+                                }
+                              })()}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
 

@@ -67,13 +67,13 @@ const QuizSelection = ({ onQuizSelect, onBack }) => {
       <div className="quiz-selection-container">
         <div className="quiz-selection-header">
           <h2>Error Loading Quizzes</h2>
-          <button className="back-btn" onClick={onBack}>
+          <button className="btn btn-secondary" onClick={onBack}>
             ← Back to Home
           </button>
         </div>
         <div className="error-message">
           <p>{error}</p>
-          <button className="retry-btn" onClick={fetchQuizzes}>
+          <button className="btn btn-danger" onClick={fetchQuizzes}>
             Retry
           </button>
         </div>
@@ -85,7 +85,7 @@ const QuizSelection = ({ onQuizSelect, onBack }) => {
     <div className="quiz-selection-container">
       <div className="quiz-selection-header">
         <h2>Select a Quiz</h2>
-        <button className="back-btn" onClick={onBack}>
+        <button className="btn btn-secondary" onClick={onBack}>
           ← Back to Home
         </button>
       </div>
@@ -139,7 +139,7 @@ const QuizSelection = ({ onQuizSelect, onBack }) => {
               
               <div className="quiz-card-footer">
                 <button 
-                  className="select-quiz-btn"
+                  className="btn btn-primary btn-block"
                   onClick={() => handleQuizSelect(quiz)}
                   disabled={!quiz.questions || quiz.questions.length === 0}
                 >

@@ -307,7 +307,7 @@ const SignIn = () => {
               )}
               
               <button
-                className="email-auth-btn"
+                className="btn btn-google btn-block"
                 onClick={handleEmailAuth}
                 disabled={loading}
               >
@@ -320,7 +320,7 @@ const SignIn = () => {
                 </span>
                 <button
                   type="button"
-                  className="toggle-auth-btn"
+                  className="btn btn-ghost"
                   onClick={() => setIsSignUp(!isSignUp)}
                   disabled={loading}
                 >
@@ -335,7 +335,7 @@ const SignIn = () => {
         {authMethod === 'google' && (
           <div className="auth-section">
             <button
-              className="google-signin-btn"
+              className="btn btn-google btn-block"
               onClick={handleGoogleSignIn}
               disabled={loading}
             >
@@ -390,7 +390,7 @@ const SignIn = () => {
                 </div>
                 
                 <button
-                  className="send-otp-btn"
+                  className="btn btn-primary btn-block"
                   onClick={handleSendOtp}
                   disabled={loading || !phoneNumber}
                 >
@@ -415,7 +415,7 @@ const SignIn = () => {
                 
                 <div className="otp-actions">
                   <button
-                    className="verify-otp-btn"
+                    className="btn btn-success"
                     onClick={handleVerifyOtp}
                     disabled={loading || otpCode.length !== 6}
                   >
@@ -423,7 +423,7 @@ const SignIn = () => {
                   </button>
                   
                   <button
-                    className="resend-otp-btn"
+                    className="btn btn-outline"
                     onClick={() => setOtpSent(false)}
                     disabled={loading}
                   >

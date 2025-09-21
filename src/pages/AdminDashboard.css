@@ -130,50 +130,6 @@
   color: #333;
 }
 
-.btn {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  transition: all 0.2s;
-  text-decoration: none;
-  display: inline-block;
-}
-
-.btn-primary {
-  background-color: #007bff;
-  color: white;
-}
-
-.btn-primary:hover {
-  background-color: #0056b3;
-}
-
-.btn-secondary {
-  background-color: #6c757d;
-  color: white;
-}
-
-.btn-secondary:hover {
-  background-color: #545b62;
-}
-
-.btn-danger {
-  background-color: #dc3545;
-  color: white;
-}
-
-.btn-danger:hover {
-  background-color: #c82333;
-}
-
-.btn-sm {
-  padding: 4px 8px;
-  font-size: 12px;
-}
-
 .table-container {
   background: white;
   border-radius: 8px;
@@ -203,6 +159,33 @@
 
 .admin-table tr:hover {
   background-color: #f8f9fa;
+}
+
+/* Table Actions Styling */
+.actions {
+  white-space: nowrap;
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.actions .btn {
+  margin-right: 0;
+  margin-bottom: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Form Actions */
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  align-items: center;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e9ecef;
 }
 
 .role-badge {
@@ -441,22 +424,6 @@
   color: #333;
 }
 
-.create-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.3s ease;
-}
-
-.create-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-}
-
 /* Modal Styles */
 .modal-overlay {
   position: fixed;
@@ -492,27 +459,6 @@
 
 .modal-header h3 {
   margin: 0;
-  color: #333;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  font-size: 24px;
-  cursor: pointer;
-  color: #666;
-  padding: 0;
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  transition: all 0.3s ease;
-}
-
-.close-btn:hover {
-  background: #f0f0f0;
   color: #333;
 }
 
@@ -581,22 +527,6 @@
   color: #333;
 }
 
-.add-question-btn {
-  background: #28a745;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.3s ease;
-}
-
-.add-question-btn:hover {
-  background: #218838;
-  transform: translateY(-1px);
-}
-
 .question-item {
   background: #f8f9fa;
   border: 1px solid #e9ecef;
@@ -615,21 +545,6 @@
 .question-header span {
   font-weight: 600;
   color: #333;
-}
-
-.remove-question-btn {
-  background: #dc3545;
-  color: white;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 12px;
-  transition: all 0.3s ease;
-}
-
-.remove-question-btn:hover {
-  background: #c82333;
 }
 
 .options-grid {
@@ -665,55 +580,16 @@
   margin: 0;
 }
 
-/* Modal Footer Buttons */
-.cancel-btn, .save-btn {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.3s ease;
-}
-
-.cancel-btn {
-  background: #6c757d;
-  color: white;
-}
-
-.cancel-btn:hover {
-  background: #5a6268;
-}
-
-.save-btn {
-  background: #007bff;
-  color: white;
-}
-
-.save-btn:hover {
-  background: #0056b3;
-}
-
 /* Quiz Actions */
 .quiz-actions {
   display: flex;
-  gap: 12px;
+  gap: 1rem;
   align-items: center;
 }
 
-.bulk-upload-btn {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.3s ease;
-}
-
-.bulk-upload-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(245, 87, 108, 0.4);
+.quiz-actions .btn {
+  margin-right: 0;
+  margin-bottom: 0;
 }
 
 /* Bulk Upload Section */
@@ -740,24 +616,6 @@
 
 .upload-actions {
   margin-bottom: 25px;
-}
-
-.template-btn {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  padding: 10px 20px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
-}
-
-.template-btn:hover {
-  background: rgba(255, 255, 255, 0.3);
-  border-color: rgba(255, 255, 255, 0.5);
-  transform: translateY(-2px);
 }
 
 /* File Upload Area */
@@ -795,25 +653,6 @@
   margin: 0;
   font-size: 16px;
   opacity: 0.9;
-}
-
-.file-select-btn {
-  background: rgba(255, 255, 255, 0.9);
-  color: #667eea;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.3s ease;
-  text-decoration: none;
-  display: inline-block;
-}
-
-.file-select-btn:hover {
-  background: white;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 /* Upload Progress */
@@ -926,47 +765,6 @@
 .import-actions {
   text-align: center;
   margin-top: 20px;
-}
-
-.import-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  padding: 15px 30px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-  font-size: 16px;
-  transition: all 0.3s ease;
-}
-
-.import-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
-}
-
-.import-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.cancel-import-btn {
-  background: #dc3545;
-  color: white;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-  font-size: 14px;
-  margin-left: 10px;
-  transition: all 0.3s ease;
-}
-
-.cancel-import-btn:hover {
-  background: #c82333;
-  transform: translateY(-1px);
 }
 
 /* Responsive Design for Bulk Upload */

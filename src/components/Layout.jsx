@@ -1,55 +1,34 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import Navbar from './Navbar';
 import Toast from './Toast';
 import { useAuth } from '../auth/AuthContext';
-import { TOAST_DURATION } from '../utils/constants';
 
 const Layout = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const [toast, setToast] = useState({ message: '', visible: false });
-  
-  // Use ref instead of global variable to prevent memory leaks
-  const toastTimerRef = useRef(null);
 
-  // Cleanup timer on unmount
-  useEffect(() => {
-    return () => {
-      if (toastTimerRef.current) {
-        clearTimeout(toastTimerRef.current);
-      }
-    };
-  }, []);
-
-  const showToast = useCallback((message) => {
+  const showToast = (message) => {
     setToast({ message, visible: true });
-    
-    // Clear existing timer
-    if (toastTimerRef.current) {
-      clearTimeout(toastTimerRef.current);
-    }
-    
-    // Set new timer
-    toastTimerRef.current = setTimeout(() => {
-      setToast({ message: '', visible: false });
-    }, TOAST_DURATION);
-  }, []);
+    window.clearTimeout(window.__toTimer);
+    window.__toTimer = window.setTimeout(() => setToast({ message: '', visible: false }), 2600);
+  };
 
-  const handleLoginClick = useCallback(() => {
+  const handleLoginClick = () => {
     navigate('/login');
-  }, [navigate]);
+  };
 
-  const handleBackClick = useCallback(() => {
+  const handleBackClick = () => {
     navigate(-1); // Go back to previous page
-  }, [navigate]);
+  };
 
-  const handleLogout = useCallback(() => {
+  const handleLogout = () => {
     logout();
     showToast('Logged out successfully');
     navigate('/');
-  }, [logout, showToast, navigate]);
+  };
 
   // Determine current page for navbar
   const currentPage = location.pathname === '/' ? 'home' : 

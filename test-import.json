@@ -1,0 +1,67 @@
+{
+  "title": "React Testing Quiz",
+  "topic": "React",
+  "description": "A quiz to test React knowledge with bulk import",
+  "questions": [
+    {
+      "question": "What is the correct way to create a React component?",
+      "options": [
+        "function MyComponent() { return <div>Hello</div>; }",
+        "class MyComponent extends React.Component { render() { return <div>Hello</div>; } }",
+        "const MyComponent = () => <div>Hello</div>;",
+        "All of the above",
+        "Don't Know"
+      ],
+      "correct": 3,
+      "topic": "React Basics"
+    },
+    {
+      "question": "What hook is used to manage state in functional components?",
+      "options": [
+        "useEffect",
+        "useState",
+        "useContext",
+        "useReducer",
+        "Don't Know"
+      ],
+      "correct": 1,
+      "topic": "React Hooks"
+    },
+    {
+      "question": "Which of the following is used to handle side effects in React?",
+      "options": [
+        "useState",
+        "useEffect",
+        "useCallback",
+        "useMemo",
+        "Don't Know"
+      ],
+      "correct": 1,
+      "topic": "React Hooks"
+    },
+    {
+      "question": "What is JSX?",
+      "options": [
+        "JavaScript XML",
+        "A JavaScript extension",
+        "A syntax extension to JavaScript",
+        "All of the above",
+        "Don't Know"
+      ],
+      "correct": 3,
+      "topic": "React Basics"
+    },
+    {
+      "question": "How do you pass data from parent to child component?",
+      "options": [
+        "Using props",
+        "Using state",
+        "Using context",
+        "Using refs",
+        "Don't Know"
+      ],
+      "correct": 0,
+      "topic": "React Props"
+    }
+  ]
+}

@@ -292,7 +292,7 @@ export default function Quiz({ items, onComplete, quizData, onBack }) {
           <div className="error-message" style={{color: 'red', marginTop: '1rem'}}>
             {error}
             <button 
-              className="btn quiz-restart-btn" 
+              className="btn btn-danger" 
               onClick={handleRestart}
               style={{marginTop: '1rem'}}
             >
@@ -309,7 +309,7 @@ export default function Quiz({ items, onComplete, quizData, onBack }) {
       {/* Quiz Header with Back Button and Title */}
       <div className="quiz-meta-header">
         {onBack && (
-          <button className="quiz-back-btn" onClick={onBack}>
+          <button className="btn btn-secondary" onClick={onBack}>
             ← Back to Quiz Selection
           </button>
         )}
@@ -356,7 +356,7 @@ export default function Quiz({ items, onComplete, quizData, onBack }) {
         <button
           onClick={handleNext}
           disabled={selected === null}
-          className={`btn ${selected === null ? 'btn-disabled' : ''}`}
+          className={`btn btn-primary ${selected === null ? 'btn-disabled' : ''}`}
         >
           {isLast ? 'Finish' : 'Next'}
         </button>

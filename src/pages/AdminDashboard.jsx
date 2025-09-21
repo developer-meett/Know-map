@@ -696,13 +696,13 @@ const AdminDashboard = () => {
                     <td className="actions">
                       <button 
                         onClick={() => handleToggleAdmin(userData.id, userData.isAdmin)}
-                        className="toggle-admin-btn"
+                        className="btn btn-sm btn-outline-primary"
                       >
                         {userData.isAdmin ? 'Remove Admin' : 'Make Admin'}
                       </button>
                       <button 
                         onClick={() => handleDeleteUser(userData.id)}
-                        className="delete-btn"
+                        className="btn btn-sm btn-danger"
                       >
                         Delete
                       </button>
@@ -720,11 +720,11 @@ const AdminDashboard = () => {
           <div className="section-header">
             <h2>Quiz Management</h2>
             <div className="quiz-actions">
-              <button className="create-btn" onClick={handleCreateQuiz}>
+              <button className="btn btn-primary" onClick={handleCreateQuiz}>
                 Create New Quiz
               </button>
               <button 
-                className="bulk-upload-btn" 
+                className="btn btn-secondary" 
                 onClick={() => setShowBulkUpload(!showBulkUpload)}
               >
                 {showBulkUpload ? 'Hide' : 'Bulk Upload'}
@@ -739,7 +739,7 @@ const AdminDashboard = () => {
               <p>Upload a JSON file to import multiple questions at once.</p>
               
               <div className="upload-actions">
-                <button className="template-btn" onClick={downloadTemplate}>
+                <button className="btn btn-outline" onClick={downloadTemplate}>
                   📥 Download Template
                 </button>
               </div>
@@ -761,7 +761,7 @@ const AdminDashboard = () => {
                     style={{ display: 'none' }}
                     id="bulk-upload-input"
                   />
-                  <label htmlFor="bulk-upload-input" className="file-select-btn">
+                  <label htmlFor="bulk-upload-input" className="btn btn-outline-primary">
                     Choose File
                   </label>
                 </div>
@@ -819,7 +819,7 @@ const AdminDashboard = () => {
                   {validationResult.isValid && fileData && (
                     <div className="import-actions">
                       <button 
-                        className="import-btn"
+                        className="btn btn-success"
                         onClick={handleBulkImportAsQuiz}
                         disabled={isImporting || uploadStatus === 'importing'}
                       >
@@ -827,7 +827,7 @@ const AdminDashboard = () => {
                       </button>
                       {isImporting && (
                         <button 
-                          className="cancel-import-btn"
+                          className="btn btn-outline-danger"
                           onClick={cancelImport}
                         >
                           Cancel Import
@@ -858,14 +858,14 @@ const AdminDashboard = () => {
                     <td>{quiz.questions?.length || 0}</td>
                     <td className="actions">
                       <button 
-                        className="edit-btn" 
+                        className="btn btn-sm btn-secondary" 
                         onClick={() => handleEditQuiz(quiz)}
                       >
                         Edit
                       </button>
                       <button 
                         onClick={() => handleDeleteQuiz(quiz.id)}
-                        className="delete-btn"
+                        className="btn btn-sm btn-danger"
                       >
                         Delete
                       </button>
@@ -885,7 +885,7 @@ const AdminDashboard = () => {
             <div className="modal-header">
               <h3>{editingQuiz ? 'Edit Quiz' : 'Create New Quiz'}</h3>
               <button 
-                className="close-btn" 
+                className="btn btn-ghost btn-sm" 
                 onClick={closeQuizModal}
               >
                 ×
@@ -913,7 +913,7 @@ const AdminDashboard = () => {
               <div className="questions-section">
                 <div className="questions-header">
                   <h4>Questions</h4>
-                  <button type="button" className="add-question-btn" onClick={addQuestion}>
+                  <button type="button" className="btn btn-outline-primary btn-sm" onClick={addQuestion}>
                     Add Question
                   </button>
                 </div>
@@ -931,7 +931,7 @@ const AdminDashboard = () => {
                       <span>Question {questionIndex + 1}</span>
                       <button 
                         type="button" 
-                        className="remove-question-btn"
+                        className="btn btn-outline-danger btn-sm"
                         onClick={() => removeQuestion(questionIndex)}
                       >
                         Remove
@@ -984,10 +984,10 @@ const AdminDashboard = () => {
               </div>
             </div>
             <div className="modal-footer">
-              <button className="cancel-btn" onClick={closeQuizModal}>
+              <button className="btn btn-secondary" onClick={closeQuizModal}>
                 Cancel
               </button>
-              <button className="save-btn" onClick={handleSaveQuiz}>
+              <button className="btn btn-primary" onClick={handleSaveQuiz}>
                 {editingQuiz ? 'Update Quiz' : 'Create Quiz'}
               </button>
             </div>

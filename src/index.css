@@ -1,3 +1,6 @@
+/* Import standardized button system */
+@import './styles/buttons.css';
+
 :root {
   font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
@@ -52,30 +55,6 @@ p {
   font-size: 1.125rem;
   line-height: 1.6;
   opacity: 0.8;
-}
-
-button {
-  border-radius: 12px;
-  border: none;
-  padding: 1rem 2rem;
-  font-size: 1.125rem;
-  font-weight: 600;
-  font-family: inherit;
-  background: #4c6ef5;
-  color: white;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 4px 14px 0 rgba(76, 110, 245, 0.39);
-}
-
-button:hover {
-  background: #364fc7;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(76, 110, 245, 0.4);
-}
-
-button:active {
-  transform: translateY(0);
 }
 
 .container {

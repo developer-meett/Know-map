@@ -1,0 +1,66 @@
+{
+  "title": "Sample JavaScript Quiz",
+  "description": "A sample quiz demonstrating the JSON format for bulk question import",
+  "questions": [
+    {
+      "id": "q1",
+      "question": "What is the correct way to declare a variable in JavaScript?",
+      "options": [
+        "var myVariable = 'value';",
+        "variable myVariable = 'value';",
+        "v myVariable = 'value';",
+        "declare myVariable = 'value';"
+      ],
+      "correct": 0,
+      "topic": "JavaScript Fundamentals"
+    },
+    {
+      "id": "q2", 
+      "question": "Which method is used to add an element to the end of an array?",
+      "options": [
+        "push()",
+        "add()",
+        "append()",
+        "insert()"
+      ],
+      "correct": 0,
+      "topic": "JavaScript Arrays"
+    },
+    {
+      "id": "q3",
+      "question": "What does CSS stand for?",
+      "options": [
+        "Cascading Style Sheets",
+        "Computer Style Sheets", 
+        "Creative Style System",
+        "Colorful Style Sheets"
+      ],
+      "correct": 0,
+      "topic": "CSS Fundamentals"
+    },
+    {
+      "id": "q4",
+      "question": "Which of the following is a JavaScript framework?",
+      "options": [
+        "Django",
+        "React", 
+        "Laravel",
+        "Rails"
+      ],
+      "correct": 1,
+      "topic": "JavaScript Frameworks"
+    },
+    {
+      "id": "q5",
+      "question": "What is the purpose of the 'useState' hook in React?",
+      "options": [
+        "To make API calls",
+        "To manage component state",
+        "To handle routing",
+        "To style components"
+      ],
+      "correct": 1,
+      "topic": "React Hooks"
+    }
+  ]
+}

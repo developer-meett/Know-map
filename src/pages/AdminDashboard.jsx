@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { collection, getDocs, doc, updateDoc, deleteDoc, addDoc, setDoc } from 'firebase/firestore';
+import React, { useState, useEffect, useRef } from 'react';
+import { collection, getDocs, doc, updateDoc, deleteDoc, addDoc, setDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useAuth } from '../auth/AuthContext';
+import QuizJSONValidator from '../utils/jsonValidator';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
@@ -12,6 +13,21 @@ const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('users');
   const [showQuizModal, setShowQuizModal] = useState(false);
   const [editingQuiz, setEditingQuiz] = useState(null);
+  const [successMessage, setSuccessMessage] = useState('');
+  
+  // Bulk upload states
+  const [showBulkUpload, setShowBulkUpload] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStatus, setUploadStatus] = useState(''); // 'uploading', 'validating', 'saving', 'complete', 'error'
+  const [validationResult, setValidationResult] = useState(null);
+  const [dragActive, setDragActive] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null); // Store the actual file
+  const [fileData, setFileData] = useState(null); // Store parsed JSON data
+  const [isImporting, setIsImporting] = useState(false); // Track import process
+  
+  // Use ref to track cancellation state for reliable checking in async operations
+  const importCancelledRef = useRef(false);
+  
   const [quizForm, setQuizForm] = useState({
     title: '',
     description: '',
@@ -193,6 +209,7 @@ const AdminDashboard = () => {
       description: quiz.description,
       questions: quiz.questions || []
     });
+    setSuccessMessage(''); // Clear any existing messages
     setShowQuizModal(true);
   };
 
@@ -203,7 +220,14 @@ const AdminDashboard = () => {
       description: '',
       questions: []
     });
+    setSuccessMessage(''); // Clear any existing messages
     setShowQuizModal(true);
+  };
+
+  const closeQuizModal = () => {
+    setShowQuizModal(false);
+    setSuccessMessage(''); // Clear success message when closing modal
+    setEditingQuiz(null);
   };
 
   const handleSaveQuiz = async () => {
@@ -230,6 +254,7 @@ const AdminDashboard = () => {
 
       setShowQuizModal(false);
       setEditingQuiz(null);
+      setSuccessMessage(''); // Clear success message after saving
       setQuizForm({ title: '', description: '', questions: [] });
     } catch (error) {
       console.error('Error saving quiz:', error);
@@ -257,17 +282,350 @@ const AdminDashboard = () => {
       id: `q${Date.now()}`,
       question: '',
       options: ['', '', '', ''],
-      correct: 0
+      correct: 0,
+      topic: ''
     };
     setQuizForm({
       ...quizForm,
       questions: [...quizForm.questions, newQuestion]
     });
+    
+    // Show success message
+    setSuccessMessage('Question added successfully! Scroll down to see the new question.');
+    
+    // Clear the message after 3 seconds
+    setTimeout(() => {
+      setSuccessMessage('');
+    }, 3000);
   };
 
   const removeQuestion = (questionIndex) => {
     const updatedQuestions = quizForm.questions.filter((_, index) => index !== questionIndex);
     setQuizForm({ ...quizForm, questions: updatedQuestions });
+  };
+
+  // Bulk Upload Functions
+  const handleFileSelect = (file) => {
+    if (!file) return;
+    
+    console.log('📁 File selected:', file.name, 'Size:', file.size);
+    
+    // Reset states
+    setValidationResult(null);
+    setUploadStatus('');
+    setUploadProgress(0);
+    setSelectedFile(file); // Store the file
+    
+    // Validate file first
+    const fileValidation = QuizJSONValidator.validateFile(file);
+    if (!fileValidation.isValid) {
+      setValidationResult({
+        isValid: false,
+        errors: fileValidation.errors,
+        warnings: [],
+        summary: 'File validation failed'
+      });
+      return;
+    }
+    
+    // Read and parse JSON
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        setUploadStatus('validating');
+        setUploadProgress(25);
+        
+        console.log('📖 Parsing JSON data...');
+        const jsonData = JSON.parse(e.target.result);
+        console.log('✅ JSON parsed successfully:', {
+          title: jsonData.title,
+          questionCount: jsonData.questions?.length || 0
+        });
+        
+        // Store the parsed data
+        setFileData(jsonData);
+        
+        const validation = QuizJSONValidator.validateQuizJSON(jsonData);
+        
+        setValidationResult(validation);
+        setUploadProgress(50);
+        
+        if (validation.isValid) {
+          setUploadStatus('ready');
+          setUploadProgress(100);
+          console.log('✅ File validation complete - ready to import');
+        } else {
+          setUploadStatus('error');
+          console.log('❌ Validation failed:', validation.errors);
+        }
+        
+      } catch (parseError) {
+        console.error('❌ JSON parsing error:', parseError);
+        setValidationResult({
+          isValid: false,
+          errors: [`Invalid JSON format: ${parseError.message}`],
+          warnings: [],
+          summary: 'JSON parsing failed'
+        });
+        setUploadStatus('error');
+      }
+    };
+    
+    reader.onerror = (error) => {
+      console.error('❌ File reading error:', error);
+      setUploadStatus('error');
+      setValidationResult({
+        isValid: false,
+        errors: ['Failed to read file'],
+        warnings: [],
+        summary: 'File reading failed'
+      });
+    };
+    
+    reader.readAsText(file);
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setDragActive(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    setDragActive(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setDragActive(false);
+    
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      handleFileSelect(files[0]);
+    }
+  };
+
+  const handleFileInputChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      handleFileSelect(file);
+    }
+  };
+
+  const handleBulkImportAsQuiz = async () => {
+    if (!fileData) {
+      console.error('❌ No file data available for import');
+      alert('Please select and validate a file first');
+      return;
+    }
+    
+    console.log('🔄 Starting bulk import as quiz...');
+    console.log('📊 Import data:', {
+      title: fileData.title,
+      topic: fileData.topic,
+      questionCount: fileData.questions?.length || 0
+    });
+    
+    // Reset cancellation flag
+    importCancelledRef.current = false;
+    setIsImporting(true);
+    setUploadStatus('importing');
+    setUploadProgress(0);
+    
+    try {
+      const questions = fileData.questions;
+      const total = questions.length;
+      
+      console.log(`📝 Creating quiz with ${total} questions...`);
+      
+      // Create quiz document with all questions
+      const quizData = {
+        title: fileData.title || 'Imported Quiz',
+        description: fileData.description || `Quiz imported from JSON with ${total} questions`,
+        topic: fileData.topic || 'General',
+        questions: questions.map((q, index) => ({
+          id: `q${index + 1}`,
+          question: q.question,
+          options: q.options,
+          correct: q.correct,
+          topic: q.topic || fileData.topic || 'General'
+        })),
+        createdAt: Timestamp.now(),
+        createdBy: user.uid,
+        isImported: true
+      };
+      
+      setUploadProgress(50);
+      
+      console.log('📤 Saving quiz to Firestore...');
+      const docRef = await addDoc(collection(db, 'quizzes'), quizData);
+      
+      console.log('✅ Quiz created with ID:', docRef.id);
+      
+      // Update local quizzes state
+      setQuizzes(prevQuizzes => [...prevQuizzes, { id: docRef.id, ...quizData }]);
+      
+      setUploadProgress(100);
+      
+      console.log('🎉 Bulk import completed!');
+      console.log(`📊 Successfully created quiz: "${quizData.title}" with ${total} questions`);
+      
+      setUploadStatus('completed');
+      setValidationResult({
+        isValid: true,
+        errors: [],
+        warnings: [],
+        summary: `Successfully created quiz "${quizData.title}" with ${total} questions`
+      });
+      
+    } catch (error) {
+      console.error('💥 Bulk import error:', error);
+      setUploadStatus('error');
+      setValidationResult({
+        isValid: false,
+        errors: [`Import failed: ${error.message}`],
+        warnings: [],
+        summary: 'Bulk import failed'
+      });
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  const handleBulkImport = async () => {
+    if (!fileData) {
+      console.error('❌ No file data available for import');
+      alert('Please select and validate a file first');
+      return;
+    }
+    
+    console.log('� Starting bulk import...');
+    console.log('📊 Import data:', {
+      title: fileData.title,
+      topic: fileData.topic,
+      questionCount: fileData.questions?.length || 0,
+      firstQuestion: fileData.questions?.[0]?.question?.substring(0, 50) + '...'
+    });
+    
+    // Reset cancellation flag
+    importCancelledRef.current = false;
+    setIsImporting(true);
+    setUploadStatus('importing');
+    setUploadProgress(0);
+    
+    try {
+      const questions = fileData.questions;
+      const total = questions.length;
+      let imported = 0;
+      let skipped = 0;
+      
+      console.log(`📝 Processing ${total} questions...`);
+      
+      // Set up timeout
+      const timeoutId = setTimeout(() => {
+        console.error('⏰ Import timeout after 30 seconds');
+        importCancelledRef.current = true;
+        setUploadStatus('error');
+        setValidationResult({
+          isValid: false,
+          errors: ['Import timeout - please try again or contact support'],
+          warnings: [],
+          summary: 'Import timed out'
+        });
+        setIsImporting(false);
+      }, 30000);
+      
+      // Process in batches to avoid overwhelming Firebase
+      const batchSize = 5;
+      for (let i = 0; i < questions.length; i += batchSize) {
+        // Check cancellation using ref (more reliable than state)
+        if (importCancelledRef.current) {
+          console.log('🛑 Import cancelled by user');
+          clearTimeout(timeoutId);
+          return;
+        }
+        
+        const batch = questions.slice(i, i + batchSize);
+        console.log(`📦 Processing batch ${Math.floor(i/batchSize) + 1}/${Math.ceil(questions.length/batchSize)}`);
+        
+        await Promise.all(batch.map(async (questionData) => {
+          try {
+            console.log(`➕ Adding question: ${questionData.question.substring(0, 30)}...`);
+            await addDoc(collection(db, 'questions'), {
+              question: questionData.question,
+              options: questionData.options,
+              correct: questionData.correct,
+              topic: questionData.topic || fileData.topic || 'General',
+              createdAt: Timestamp.now(),
+              createdBy: user.uid
+            });
+            imported++;
+            console.log(`✅ Question added successfully (${imported}/${total})`);
+          } catch (error) {
+            console.error('❌ Error adding question:', error);
+            skipped++;
+          }
+        }));
+        
+        // Update progress
+        const progress = Math.round(((i + batch.length) / total) * 100);
+        setUploadProgress(progress);
+        console.log(`📈 Progress: ${progress}% (${imported} imported, ${skipped} skipped)`);
+        
+        // Small delay between batches
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+      
+      clearTimeout(timeoutId);
+      
+      console.log('🎉 Bulk import completed!');
+      console.log(`📊 Final results: ${imported} imported, ${skipped} skipped`);
+      
+      setUploadStatus('completed');
+      setValidationResult({
+        isValid: true,
+        errors: [],
+        warnings: skipped > 0 ? [`${skipped} questions were skipped due to errors`] : [],
+        summary: `Successfully imported ${imported} out of ${total} questions`
+      });
+      
+      // Note: Individual questions are now in the 'questions' collection
+      // You can refresh the admin dashboard to see them
+      
+    } catch (error) {
+      console.error('💥 Bulk import error:', error);
+      setUploadStatus('error');
+      setValidationResult({
+        isValid: false,
+        errors: [`Import failed: ${error.message}`],
+        warnings: [],
+        summary: 'Bulk import failed'
+      });
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  const cancelImport = () => {
+    console.log('🛑 User cancelled import');
+    importCancelledRef.current = true;
+    setIsImporting(false);
+    setUploadStatus('cancelled');
+    setValidationResult({
+      isValid: false,
+      errors: ['Import cancelled by user'],
+      warnings: [],
+      summary: 'Import was cancelled'
+    });
+  };
+
+  const downloadTemplate = () => {
+    const link = document.createElement('a');
+    link.href = '/sample-quiz-template.json';
+    link.download = 'quiz-template.json';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   if (loading) {
@@ -361,10 +719,127 @@ const AdminDashboard = () => {
         <div className="admin-section">
           <div className="section-header">
             <h2>Quiz Management</h2>
-            <button className="create-btn" onClick={handleCreateQuiz}>
-              Create New Quiz
-            </button>
+            <div className="quiz-actions">
+              <button className="create-btn" onClick={handleCreateQuiz}>
+                Create New Quiz
+              </button>
+              <button 
+                className="bulk-upload-btn" 
+                onClick={() => setShowBulkUpload(!showBulkUpload)}
+              >
+                {showBulkUpload ? 'Hide' : 'Bulk Upload'}
+              </button>
+            </div>
           </div>
+
+          {/* Bulk Upload Section */}
+          {showBulkUpload && (
+            <div className="bulk-upload-section">
+              <h3>Bulk Upload Questions</h3>
+              <p>Upload a JSON file to import multiple questions at once.</p>
+              
+              <div className="upload-actions">
+                <button className="template-btn" onClick={downloadTemplate}>
+                  📥 Download Template
+                </button>
+              </div>
+
+              {/* File Upload Area */}
+              <div 
+                className={`file-upload-area ${dragActive ? 'drag-active' : ''}`}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              >
+                <div className="upload-content">
+                  <div className="upload-icon">📄</div>
+                  <p>Drag and drop your JSON file here, or</p>
+                  <input
+                    type="file"
+                    accept=".json"
+                    onChange={handleFileInputChange}
+                    style={{ display: 'none' }}
+                    id="bulk-upload-input"
+                  />
+                  <label htmlFor="bulk-upload-input" className="file-select-btn">
+                    Choose File
+                  </label>
+                </div>
+              </div>
+
+              {/* Upload Progress */}
+              {uploadStatus && (
+                <div className="upload-progress-section">
+                  <div className="progress-bar">
+                    <div 
+                      className="progress-fill"
+                      style={{ width: `${uploadProgress}%` }}
+                    ></div>
+                  </div>
+                  <p className="progress-text">
+                    {uploadStatus === 'validating' && 'Validating JSON structure...'}
+                    {uploadStatus === 'ready' && 'File validated successfully!'}
+                    {uploadStatus === 'saving' && 'Saving questions to database...'}
+                    {uploadStatus === 'complete' && 'Import completed successfully!'}
+                    {uploadStatus === 'error' && 'Import failed - check errors below'}
+                  </p>
+                </div>
+              )}
+
+              {/* Validation Results */}
+              {validationResult && (
+                <div className="validation-results">
+                  <h4>Validation Results</h4>
+                  <div className={`validation-summary ${validationResult.isValid ? 'valid' : 'invalid'}`}>
+                    {validationResult.summary}
+                  </div>
+
+                  {validationResult.errors.length > 0 && (
+                    <div className="validation-errors">
+                      <h5>❌ Errors ({validationResult.errors.length}):</h5>
+                      <ul>
+                        {validationResult.errors.map((error, index) => (
+                          <li key={index} className="error-item">{error}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {validationResult.warnings.length > 0 && (
+                    <div className="validation-warnings">
+                      <h5>⚠️ Warnings ({validationResult.warnings.length}):</h5>
+                      <ul>
+                        {validationResult.warnings.map((warning, index) => (
+                          <li key={index} className="warning-item">{warning}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {validationResult.isValid && fileData && (
+                    <div className="import-actions">
+                      <button 
+                        className="import-btn"
+                        onClick={handleBulkImportAsQuiz}
+                        disabled={isImporting || uploadStatus === 'importing'}
+                      >
+                        {isImporting ? 'Importing...' : `Import ${fileData.questions?.length || 0} Questions`}
+                      </button>
+                      {isImporting && (
+                        <button 
+                          className="cancel-import-btn"
+                          onClick={cancelImport}
+                        >
+                          Cancel Import
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="table-container">
             <table className="admin-table">
               <thead>
@@ -411,7 +886,7 @@ const AdminDashboard = () => {
               <h3>{editingQuiz ? 'Edit Quiz' : 'Create New Quiz'}</h3>
               <button 
                 className="close-btn" 
-                onClick={() => setShowQuizModal(false)}
+                onClick={closeQuizModal}
               >
                 ×
               </button>
@@ -443,6 +918,13 @@ const AdminDashboard = () => {
                   </button>
                 </div>
                 
+                {/* Success Message */}
+                {successMessage && (
+                  <div className="success-message">
+                    {successMessage}
+                  </div>
+                )}
+                
                 {quizForm.questions.map((question, questionIndex) => (
                   <div key={question.id} className="question-item">
                     <div className="question-header">
@@ -463,6 +945,16 @@ const AdminDashboard = () => {
                         value={question.question}
                         onChange={(e) => handleQuestionChange(questionIndex, 'question', e.target.value)}
                         placeholder="Enter question"
+                      />
+                    </div>
+                    
+                    <div className="form-group">
+                      <label>Topic</label>
+                      <input
+                        type="text"
+                        value={question.topic || ''}
+                        onChange={(e) => handleQuestionChange(questionIndex, 'topic', e.target.value)}
+                        placeholder="Enter topic (e.g., JavaScript Fundamentals, CSS Basics)"
                       />
                     </div>
                     
@@ -492,7 +984,7 @@ const AdminDashboard = () => {
               </div>
             </div>
             <div className="modal-footer">
-              <button className="cancel-btn" onClick={() => setShowQuizModal(false)}>
+              <button className="cancel-btn" onClick={closeQuizModal}>
                 Cancel
               </button>
               <button className="save-btn" onClick={handleSaveQuiz}>

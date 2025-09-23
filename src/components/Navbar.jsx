@@ -1,21 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../auth/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
-import './styles/Navbar.module.css';
 
-const Navbar = ({ onLoginClick, onBackClick, currentPage, showBackButton }) => {
+const Navbar = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     const checkAdminStatus = async () => {
       if (user) {
         try {
-          // Check Firebase custom claims first
-          const idTokenResult = await user.getIdTokenResult();
+          // Check Firebase custom claims
+          const idTokenResult = await user.getIdTokenResult(true); // Force refresh
           if (idTokenResult.claims.admin) {
             setIsAdmin(true);
             return;
@@ -25,9 +25,12 @@ const Navbar = ({ onLoginClick, onBackClick, currentPage, showBackButton }) => {
           const userDoc = await getDoc(doc(db, 'users', user.uid));
           if (userDoc.exists() && userDoc.data().isAdmin) {
             setIsAdmin(true);
+          } else {
+            setIsAdmin(false);
           }
         } catch (error) {
           console.error('Error checking admin status:', error);
+          setIsAdmin(false);
         }
       } else {
         setIsAdmin(false);
@@ -41,40 +44,66 @@ const Navbar = ({ onLoginClick, onBackClick, currentPage, showBackButton }) => {
     navigate('/admin');
   };
 
+  const handleProfileClick = () => {
+    navigate('/profile');
+  };
+
+  const handleLoginClick = () => {
+    navigate('/login');
+  };
+
+  const handleLogoClick = () => {
+    navigate('/');
+  };
+
+  const isHomePage = location.pathname === '/';
+
   return (
-    <nav className="navbar">
-      <div className="container">
-        <div className="logo">
-          <div className="logo-icon">KM</div>
-          KnowMap
+    <header className="navbar">
+      <nav className="container">
+        <div className="logo" onClick={handleLogoClick}>
+          <div className="logoIcon">KM</div>
+          <span>KnowMap</span>
         </div>
+        
         {user ? (
-          <div className="auth-links-navbar">
-            <span className="user-email">{user.email}</span>
+          <div className="nav-user-menu">
+            <div className="user-info">
+              <span>{user.email}</span>
+            </div>
+            <button 
+              className="btn btn-secondary btn-sm"
+              onClick={handleProfileClick}
+            >
+              Profile
+            </button>
             {isAdmin && (
-              <button className="navbar-btn admin-btn" onClick={handleAdminClick}>
+              <button 
+                className="btn btn-primary btn-sm"
+                onClick={handleAdminClick}
+              >
                 Admin
               </button>
             )}
-            <button className="navbar-btn" onClick={logout}>
+            <button 
+              className="btn btn-outline btn-sm"
+              onClick={logout}
+            >
               Logout
             </button>
           </div>
         ) : (
-          currentPage === 'home' ? (
-            <div className="auth-links-navbar">
-              <button className="navbar-btn" onClick={onLoginClick}>
-                Login
-              </button>
-            </div>
-          ) : showBackButton ? (
-            <button className="back-btn" onClick={onBackClick}>
-              {currentPage === 'quiz' ? 'Back to Home' : 'Back'}
+          <div className="nav-links">
+            <button 
+              className="btn btn-primary btn-md"
+              onClick={handleLoginClick}
+            >
+              Login
             </button>
-          ) : null
+          </div>
         )}
-      </div>
-    </nav>
+      </nav>
+    </header>
   );
 };
 

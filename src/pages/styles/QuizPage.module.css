@@ -1,0 +1,108 @@
+/* Modern Professional QuizPage */
+.quizMain {
+  min-height: calc(100vh - 80px); /* Account for navbar height */
+  background-color: var(--color-background);
+  padding: var(--spacing-xl) 0;
+  position: relative;
+}
+
+.quizMain::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(circle at 10% 20%, rgba(79, 70, 229, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 90% 80%, rgba(124, 58, 237, 0.05) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+.quizWrapper {
+  position: relative;
+  z-index: 1;
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+/* Smooth animations for state transitions */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Loading state styling (if needed) */
+.loadingState {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 50vh;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-lg);
+}
+
+.loadingSpinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--color-border);
+  border-top: 3px solid var(--color-primary);
+  border-radius: var(--radius-full);
+  animation: spin 1s linear infinite;
+  margin-right: var(--spacing-md);
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Error state styling */
+.errorState {
+  text-align: center;
+  padding: var(--spacing-2xl);
+  background-color: var(--color-error-light);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-error);
+  margin: var(--spacing-xl) 0;
+}
+
+.errorTitle {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-error);
+  margin-bottom: var(--spacing-md);
+}
+
+.errorMessage {
+  font-size: var(--font-size-base);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-lg);
+  line-height: var(--line-height-relaxed);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .quizMain {
+    padding: var(--spacing-lg) 0;
+  }
+  
+  .quizWrapper {
+    margin: 0 var(--spacing-md);
+  }
+}
+
+@media (max-width: 480px) {
+  .quizMain {
+    padding: var(--spacing-md) 0;
+  }
+  
+  .quizWrapper {
+    margin: 0 var(--spacing-sm);
+  }
+}

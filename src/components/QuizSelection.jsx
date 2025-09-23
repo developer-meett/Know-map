@@ -67,13 +67,13 @@ const QuizSelection = ({ onQuizSelect, onBack }) => {
       <div className="quiz-selection-container">
         <div className="quiz-selection-header">
           <h2>Error Loading Quizzes</h2>
-          <button className="btn btn-secondary" onClick={onBack}>
+          <button className="px-8 py-3 font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-all duration-200" onClick={onBack}>
             ← Back to Home
           </button>
         </div>
         <div className="error-message">
           <p>{error}</p>
-          <button className="btn btn-danger" onClick={fetchQuizzes}>
+          <button className="px-8 py-3 font-semibold text-white bg-red-600 border-2 border-red-600 rounded-lg hover:bg-red-700 hover:border-red-700 transition-all duration-200 mt-4" onClick={fetchQuizzes}>
             Retry
           </button>
         </div>
@@ -85,7 +85,7 @@ const QuizSelection = ({ onQuizSelect, onBack }) => {
     <div className="quiz-selection-container">
       <div className="quiz-selection-header">
         <h2>Select a Quiz</h2>
-        <button className="btn btn-secondary" onClick={onBack}>
+        <button className="px-8 py-3 font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-all duration-200" onClick={onBack}>
           ← Back to Home
         </button>
       </div>
@@ -139,7 +139,7 @@ const QuizSelection = ({ onQuizSelect, onBack }) => {
               
               <div className="quiz-card-footer">
                 <button 
-                  className="btn btn-primary btn-block"
+                  className="w-full px-8 py-3 font-semibold text-white bg-indigo-600 border-2 border-indigo-600 rounded-lg hover:bg-indigo-700 hover:border-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                   onClick={() => handleQuizSelect(quiz)}
                   disabled={!quiz.questions || quiz.questions.length === 0}
                 >

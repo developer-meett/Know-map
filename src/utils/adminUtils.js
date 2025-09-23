@@ -8,12 +8,17 @@ const functions = getFunctions(app);
 /**
  * Get the current user's custom claims
  */
-export const getUserClaims = httpsCallable(functions, 'nodejs-getUserClaims');
+export const getUserClaims = httpsCallable(functions, 'getUserClaims');
 
 /**
  * Set admin role for a user (only callable by admins)
  */
-export const setAdminRole = httpsCallable(functions, 'nodejs-setAdminRole');
+export const setAdminRole = httpsCallable(functions, 'setAdminRole');
+
+/**
+ * Delete user completely from Firebase Auth and Firestore (only callable by admins)
+ */
+export const deleteUser = httpsCallable(functions, 'deleteUser');
 
 /**
  * Check if the current user has admin privileges
@@ -22,14 +27,22 @@ export const setAdminRole = httpsCallable(functions, 'nodejs-setAdminRole');
  */
 export const checkIsAdmin = async (user) => {
   if (!user) {
+    console.log("🚫 checkIsAdmin: No user provided");
     return false;
   }
   
   try {
-    // Get the ID token with custom claims
-    const idTokenResult = await user.getIdTokenResult();
-    return !!idTokenResult.claims.admin;
+    console.log("🔍 checkIsAdmin: Getting ID token for user:", user.email);
+    // Get the ID token with custom claims (force refresh to get latest)
+    const idTokenResult = await user.getIdTokenResult(true);
+    console.log("🎫 checkIsAdmin: Token claims:", idTokenResult.claims);
+    console.log("👑 checkIsAdmin: Admin claim:", idTokenResult.claims.admin);
+    
+    const isAdmin = !!idTokenResult.claims.admin;
+    console.log("📊 checkIsAdmin: Final result:", isAdmin);
+    return isAdmin;
   } catch (error) {
+    console.log("💥 checkIsAdmin: Error:", error);
     logger.error('Error checking admin status:', error);
     return false;
   }

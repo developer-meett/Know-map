@@ -161,33 +161,6 @@
   background-color: #f8f9fa;
 }
 
-/* Table Actions Styling */
-.actions {
-  white-space: nowrap;
-  display: flex;
-  gap: 0.75rem;
-  align-items: center;
-}
-
-.actions .btn {
-  margin-right: 0;
-  margin-bottom: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-/* Form Actions */
-.form-actions {
-  display: flex;
-  gap: 1rem;
-  justify-content: flex-end;
-  align-items: center;
-  margin-top: 1.5rem;
-  padding-top: 1rem;
-  border-top: 1px solid #e9ecef;
-}
-
 .role-badge {
   padding: 4px 8px;
   border-radius: 12px;
@@ -583,13 +556,8 @@
 /* Quiz Actions */
 .quiz-actions {
   display: flex;
-  gap: 1rem;
+  gap: 12px;
   align-items: center;
-}
-
-.quiz-actions .btn {
-  margin-right: 0;
-  margin-bottom: 0;
 }
 
 /* Bulk Upload Section */

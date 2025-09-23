@@ -10,7 +10,7 @@ import {
   RecaptchaVerifier,
   signInWithPhoneNumber,
 } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { logger } from '../utils/logger';
 
 const AuthContext = createContext(null);
@@ -24,7 +24,16 @@ export function AuthProvider({ children }) {
   const confirmationResultRef = useRef(null);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => {
+    const unsub = onAuthStateChanged(auth, async (u) => {
+      if (u) {
+        // User is signed in, ensure their document exists in Firestore
+        try {
+          await createUserDocument(u);
+        } catch (error) {
+          logger.error('Error creating user document during auth state change:', error);
+          // Don't fail the authentication if document creation fails
+        }
+      }
       setUser(u);
       setInitializing(false);
     });
@@ -44,7 +53,16 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
-  const login = (email, password) => signInWithEmailAndPassword(auth, email, password);
+  const login = async (email, password) => {
+    try {
+      const result = await signInWithEmailAndPassword(auth, email, password);
+      // User document will be created/updated in the onAuthStateChanged listener
+      return result;
+    } catch (error) {
+      logger.error('Login failed:', error);
+      throw error;
+    }
+  };
   
   const signup = async (email, password) => {
     try {
@@ -64,15 +82,31 @@ export function AuthProvider({ children }) {
   const createUserDocument = async (user) => {
     try {
       const userRef = doc(db, 'users', user.uid);
-      await setDoc(userRef, {
+      
+      // Check if document exists first
+      const userDoc = await getDoc(userRef);
+      const userData = {
+        uid: user.uid,
         email: user.email,
+        displayName: user.displayName || user.email?.split('@')[0] || 'User',
+        isAdmin: false, // Default to false
         role: 'student', // Default role
-        createdAt: serverTimestamp(),
         lastLoginAt: serverTimestamp(),
-      }, { merge: true }); // Use merge to avoid overwriting existing data
-      logger.debug('User document created/updated:', user.uid);
+      };
+      
+      if (!userDoc.exists()) {
+        // New user - set createdAt
+        userData.createdAt = serverTimestamp();
+        await setDoc(userRef, userData);
+        logger.debug('New user document created:', user.uid);
+      } else {
+        // Existing user - just update login time and ensure required fields
+        await setDoc(userRef, userData, { merge: true });
+        logger.debug('User document updated:', user.uid);
+      }
     } catch (error) {
       logger.error('Error creating user document:', error);
+      // Don't throw error to prevent authentication state issues
     }
   };
 

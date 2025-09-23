@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import './styles/HomePage.module.css';
+import styles from './styles/HomePage.module.css';
 
 const HomePage = () => {
   const navigate = useNavigate();
@@ -10,20 +10,23 @@ const HomePage = () => {
   };
 
   return (
-    <main className="hero">
+    <main className={styles.hero}>
       <div className="container">
-        <h1 className="hero-title">
-          Stop Wasting Time on <span className="highlight">Random Revision</span>
-        </h1>
-        <p className="hero-subtitle">
-          Take diagnostic quizzes across 12+ programming languages and CS topics. Get
-          personalized learning roadmaps that show exactly what you know, what needs revision,
-          and what to learn from scratch.
-        </p>
-        <div className="cta-section">
-          <button className="cta-button" onClick={handleStartQuiz}>
-            Start Diagnostic Quiz →
-          </button>
+        <div className={styles.heroContent}>
+          <h1 className={styles.heroTitle}>
+            Stop Wasting Time on <span className={styles.highlight}>Random Revision</span>
+          </h1>
+          <p className={styles.heroSubtitle}>
+            Take diagnostic quizzes across 12+ programming languages and CS topics. Get
+            personalized learning roadmaps that show exactly what you know, what needs revision,
+            and what to learn from scratch.
+          </p>
+          <div className={styles.ctaSection}>
+            <button className="btn btn-primary btn-xl" onClick={handleStartQuiz}>
+              Start Diagnostic Quiz →
+            </button>
+            <p className={styles.ctaHint}>Free • No account required</p>
+          </div>
         </div>
       </div>
     </main>

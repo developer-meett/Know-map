@@ -238,6 +238,60 @@ def know_map_api(req):
         response_data = {'error': 'Internal server error'}
         return (json.dumps(response_data), 500, headers)
 
+def await_update_user_stats(db, user_id, attempt_data):
+    """Update user profile statistics after quiz completion"""
+    try:
+        logger = get_logger()
+        logger.info(f"Updating stats for user: {user_id}")
+        
+        # Get current user document
+        user_ref = db.collection('users').document(user_id)
+        user_doc = user_ref.get()
+        
+        if not user_doc.exists:
+            logger.warning(f"User document not found: {user_id}")
+            return
+        
+        user_data = user_doc.to_dict()
+        current_stats = user_data.get('stats', {})
+        
+        # Calculate new statistics
+        total_quizzes = current_stats.get('totalQuizzesTaken', 0) + 1
+        total_xp = current_stats.get('totalXP', 0) + attempt_data['xpEarned']
+        perfect_scores = current_stats.get('perfectScores', 0) + (1 if attempt_data['isPerfectScore'] else 0)
+        
+        # Calculate new average score
+        prev_avg = current_stats.get('averageScore', 0)
+        prev_count = current_stats.get('totalQuizzesTaken', 0)
+        new_avg = ((prev_avg * prev_count) + attempt_data['percentage']) / total_quizzes
+        
+        # Calculate level (simple: level = XP / 100)
+        level = max(1, total_xp // 100)
+        
+        # Prepare updated stats
+        updated_stats = {
+            'totalQuizzesTaken': total_quizzes,
+            'totalTimeSpent': current_stats.get('totalTimeSpent', 0) + (attempt_data.get('timeSpent', 0) / 60),  # Convert to minutes
+            'totalXP': total_xp,
+            'level': level,
+            'averageScore': round(new_avg, 1),
+            'perfectScores': perfect_scores
+        }
+        
+        # Update user document
+        user_ref.update({
+            'stats': updated_stats,
+            'lastActiveAt': attempt_data['completedAt']
+        })
+        
+        logger.info(f"Successfully updated stats for user {user_id}: Level {level}, XP {total_xp}")
+        
+    except Exception as e:
+        logger = get_logger()
+        logger.error(f"Error updating user stats: {str(e)}")
+        raise
+
+
 def handle_submit_quiz(req, headers):
     """Handle quiz submission"""
     logger = get_logger()
@@ -315,11 +369,63 @@ def handle_submit_quiz(req, headers):
         # Analyze performance
         analysis_result = analyze_quiz_performance(user_answers, quiz_questions)
         
-        # Create comprehensive report
-        report_data = {
+        # Calculate additional metrics for profile tracking
+        total_questions = analysis_result['totalQuestions']
+        score = analysis_result['totalScore']
+        percentage = analysis_result['overallPercentage']
+        is_perfect_score = percentage == 100
+        
+        # Calculate XP earned (example: base 10 XP + bonus for high scores)
+        xp_earned = 10 + (score * 2) + (50 if is_perfect_score else 0)
+        
+        # Get current timestamp
+        submission_time = datetime.utcnow()
+        
+        # Create comprehensive quiz attempt record
+        attempt_data = {
             'userId': user_id,
             'quizId': quiz_id,
-            'submittedAt': datetime.utcnow(),
+            'quizTitle': quiz_data.get('title', 'Unknown Quiz'),
+            
+            # Timing
+            'startedAt': submission_time,  # Frontend could provide actual start time
+            'completedAt': submission_time,
+            'timeSpent': request_json.get('timeSpent', 0),  # Frontend should provide this
+            
+            # Results
+            'score': score,
+            'totalQuestions': total_questions,
+            'percentage': percentage,
+            'isPerfectScore': is_perfect_score,
+            
+            # Detailed breakdown
+            'topicBreakdown': analysis_result['classifiedTopics'],
+            'questionBreakdown': analysis_result['questionBreakdown'],
+            
+            # Analytics
+            'difficultyLevel': quiz_data.get('difficulty', 'medium'),
+            'deviceType': request_json.get('deviceType', 'unknown'),
+            'retryAttempt': 1,  # TODO: Calculate actual retry number
+            
+            # Gamification
+            'xpEarned': xp_earned,
+            'badgesUnlocked': [],  # TODO: Implement badge system
+            
+            # Metadata
+            'userEmail': user_info.get('email', 'Unknown'),
+            'reportVersion': '2.0'
+        }
+        
+        # Save enhanced quiz attempt to new collection
+        attempt_ref = db.collection('quiz-attempts').document()
+        attempt_ref.set(attempt_data)
+        attempt_id = attempt_ref.id
+        
+        # Also save to legacy reports collection for backward compatibility
+        legacy_report_data = {
+            'userId': user_id,
+            'quizId': quiz_id,
+            'submittedAt': submission_time,
             'userAnswers': user_answers,
             'analysis': analysis_result,
             'quizTitle': quiz_data.get('title', 'Unknown Quiz'),
@@ -327,18 +433,26 @@ def handle_submit_quiz(req, headers):
             'reportVersion': '1.0'
         }
         
-        # Save report to Firestore
         report_ref = db.collection('reports').document()
-        report_ref.set(report_data)
+        report_ref.set(legacy_report_data)
         report_id = report_ref.id
         
-        logger.info(f"Report generated successfully: {report_id}")
+        # Update user profile statistics
+        try:
+            await_update_user_stats(db, user_id, attempt_data)
+        except Exception as e:
+            logger.warning(f"Failed to update user stats: {str(e)}")
         
-        # Return response with report ID
+        logger.info(f"Quiz attempt recorded: {attempt_id}, Legacy report: {report_id}")
+        
+        # Return response with both IDs
         response_data = {
             'success': True,
+            'attemptId': attempt_id,
             'reportId': report_id,
             'analysis': analysis_result,
+            'xpEarned': xp_earned,
+            'isPerfectScore': is_perfect_score,
             'message': 'Quiz submitted and analyzed successfully'
         }
         return (json.dumps(response_data), 200, headers)

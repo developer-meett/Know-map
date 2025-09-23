@@ -6,7 +6,8 @@ service cloud.firestore {
     function isAdmin() {
       return request.auth != null && (
         request.auth.token.admin == true ||
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true)
       );
     }
     
@@ -51,7 +52,24 @@ service cloud.firestore {
       }
     }
     
-    // Quiz results collection rules
+    // Quiz attempts collection rules (new enhanced format)
+    match /quiz-attempts/{attemptId} {
+      // Users can read their own quiz attempts
+      allow read: if request.auth != null 
+        && request.auth.uid == resource.data.userId;
+      
+      // Users can create their own quiz attempts
+      allow create: if request.auth != null 
+        && request.auth.uid == request.resource.data.userId;
+      
+      // Admins can read all quiz attempts
+      allow read: if isAdmin();
+      
+      // Admins can delete quiz attempts
+      allow delete: if isAdmin();
+    }
+    
+    // Quiz results collection rules (legacy support)
     match /quiz-results/{resultId} {
       // Users can read their own quiz results
       allow read: if request.auth != null 
@@ -68,6 +86,23 @@ service cloud.firestore {
       // Admins can delete quiz results
       allow delete: if request.auth != null 
         && request.auth.token.admin == true;
+    }
+    
+    // Reports collection rules (legacy support)
+    match /reports/{reportId} {
+      // Users can read their own reports
+      allow read: if request.auth != null 
+        && request.auth.uid == resource.data.userId;
+      
+      // Users can create their own reports
+      allow create: if request.auth != null 
+        && request.auth.uid == request.resource.data.userId;
+      
+      // Admins can read all reports
+      allow read: if isAdmin();
+      
+      // Admins can delete reports
+      allow delete: if isAdmin();
     }
     
     // Deny all other operations by default

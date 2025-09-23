@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Quiz from '../components/Quiz';
 import QuizSelection from '../components/QuizSelection';
-import './styles/QuizPage.module.css';
+import styles from './styles/QuizPage.module.css';
 
 const QuizPage = () => {
   const navigate = useNavigate();
@@ -29,20 +29,22 @@ const QuizPage = () => {
   };
 
   return (
-    <main className="quiz-main">
+    <main className={styles.quizMain}>
       <div className="container">
-        {!selectedQuiz ? (
-          <QuizSelection 
-            onQuizSelect={handleQuizSelect} 
-            onBack={handleBackToHome}
-          />
-        ) : (
-          <Quiz 
-            onComplete={handleQuizComplete}
-            quizData={selectedQuiz}
-            onBack={handleBackToSelection}
-          />
-        )}
+        <div className={styles.quizWrapper}>
+          {!selectedQuiz ? (
+            <QuizSelection 
+              onQuizSelect={handleQuizSelect} 
+              onBack={handleBackToHome}
+            />
+          ) : (
+            <Quiz 
+              onComplete={handleQuizComplete}
+              quizData={selectedQuiz}
+              onBack={handleBackToSelection}
+            />
+          )}
+        </div>
       </div>
     </main>
   );

@@ -13,15 +13,14 @@ const AdminRoute = ({ children }) => {
     const checkAdminStatus = async () => {
       if (user) {
         try {
-          // Temporary: Allow specific UID for testing
-          if (user.uid === 'DX7Hu54gTLUtxchRzqk0dVDcOR53') {
-            setIsAdmin(true);
-            logger.debug('Admin access granted for test user');
-          } else {
-            const adminStatus = await checkIsAdmin(user);
-            setIsAdmin(adminStatus);
-            logger.debug('Admin status checked:', adminStatus);
-          }
+          logger.debug('AdminRoute: Checking admin status for user:', user.email);
+          
+          // Force refresh the token to get latest custom claims
+          const idTokenResult = await user.getIdTokenResult(true);
+          
+          const adminStatus = await checkIsAdmin(user);
+          setIsAdmin(adminStatus);
+          logger.debug('Admin status checked:', adminStatus);
         } catch (error) {
           logger.error('Error checking admin status:', error);
           setIsAdmin(false);

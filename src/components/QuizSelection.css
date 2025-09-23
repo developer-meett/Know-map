@@ -49,7 +49,7 @@
   width: 40px;
   height: 40px;
   border: 4px solid #f3f3f3;
-  border-top: 4px solid #667eea;
+  border-top: 4px solid #4f46e5;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -124,7 +124,7 @@
 
 .quiz-card-header {
   padding: 1.5rem 1.5rem 1rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
   color: white;
 }
 
@@ -201,7 +201,7 @@
 
 .select-quiz-btn {
   width: 100%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
   color: white;
   border: none;
   padding: 1rem;
@@ -214,7 +214,7 @@
 
 .select-quiz-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
 }
 
 .select-quiz-btn:disabled {

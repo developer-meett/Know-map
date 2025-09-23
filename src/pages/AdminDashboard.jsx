@@ -3,6 +3,7 @@ import { collection, getDocs, doc, updateDoc, deleteDoc, addDoc, setDoc, Timesta
 import { db } from '../firebase/config';
 import { useAuth } from '../auth/AuthContext';
 import QuizJSONValidator from '../utils/jsonValidator';
+import { setAdminRole, deleteUser } from '../utils/adminUtils';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
@@ -14,6 +15,7 @@ const AdminDashboard = () => {
   const [showQuizModal, setShowQuizModal] = useState(false);
   const [editingQuiz, setEditingQuiz] = useState(null);
   const [successMessage, setSuccessMessage] = useState('');
+  const [adminUsers, setAdminUsers] = useState(new Set()); // Track users with admin claims
   
   // Bulk upload states
   const [showBulkUpload, setShowBulkUpload] = useState(false);
@@ -34,6 +36,17 @@ const AdminDashboard = () => {
     questions: []
   });
   const { user } = useAuth();
+
+  // Helper function to check if a user is admin
+  const isUserAdmin = (userData) => {
+    // Check if user has been granted admin via Firebase Function
+    if (adminUsers.has(userData.id)) {
+      return true;
+    }
+    
+    // Check isAdmin field in Firestore
+    return userData.isAdmin === true;
+  };
 
   // Sample data for demonstration
   const sampleUsers = [
@@ -78,45 +91,44 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     fetchData();
-  }, []);
+    
+    // If current user is admin (since they can access this page), add them to admin set
+    if (user) {
+      setAdminUsers(prev => new Set([...prev, user.uid]));
+    }
+  }, [user]);
 
   const fetchData = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // Ensure current user document exists
-      if (user) {
-        try {
-          const userDocRef = doc(db, 'users', user.uid);
-          await setDoc(userDocRef, {
-            email: user.email,
-            displayName: user.displayName || user.email,
-            isAdmin: true,
-            createdAt: new Date(),
-          }, { merge: true });
-        } catch (userCreateError) {
-          console.warn('Could not create user document:', userCreateError);
-        }
-      }
-
       // Fetch users with error handling
       try {
+        console.log('📊 AdminDashboard: Fetching users from Firestore...');
         const usersSnapshot = await getDocs(collection(db, 'users'));
-        const usersData = usersSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
+        const usersData = usersSnapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            ...data,
+            // Ensure date fields are properly formatted
+            createdAt: data.createdAt?.toDate?.() || data.createdAt || new Date(),
+            lastLoginAt: data.lastLoginAt?.toDate?.() || data.lastLoginAt || new Date(),
+          };
+        });
+        
+        console.log(`📊 AdminDashboard: Found ${usersData.length} users:`, usersData);
         
         if (usersData.length === 0) {
-          console.log('No users found, using sample data');
+          console.log('⚠️ No users found in Firestore, using sample data');
           setUsers(sampleUsers);
         } else {
           setUsers(usersData);
         }
       } catch (userError) {
-        console.error('Error fetching users, using sample data:', userError);
-        setError('Using sample data. Check Firebase permissions.');
+        console.error('💥 Error fetching users, using sample data:', userError);
+        setError('Error loading users from database. Showing sample data.');
         setUsers(sampleUsers);
       }
 
@@ -160,30 +172,73 @@ const AdminDashboard = () => {
 
   const handleToggleAdmin = async (userId, currentStatus) => {
     try {
+      console.log("🔐 Toggling admin status for user:", userId, "Current status:", currentStatus);
+      
+      // Find the user to get their email/UID
+      const userToUpdate = users.find(u => u.id === userId);
+      if (!userToUpdate) {
+        throw new Error('User not found');
+      }
+      
+      console.log("👤 User to update:", userToUpdate.email);
+      
+      // IMPORTANT: Call the Firebase Function to set custom claims
+      // This is what actually grants/revokes admin access
+      console.log("📞 Calling setAdminRole function...");
+      const result = await setAdminRole({
+        uid: userId,
+        isAdmin: !currentStatus
+      });
+      
+      console.log("✅ setAdminRole result:", result);
+      
+      // Track this user as admin in our local state
+      if (!currentStatus) {
+        setAdminUsers(prev => new Set([...prev, userId]));
+      } else {
+        setAdminUsers(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(userId);
+          return newSet;
+        });
+      }
+      
+      // Also update Firestore for the admin panel display
       const userRef = doc(db, 'users', userId);
       await updateDoc(userRef, {
         isAdmin: !currentStatus
       });
       
+      // Update local state
       setUsers(users.map(user => 
         user.id === userId ? { ...user, isAdmin: !currentStatus } : user
       ));
       
-      alert('User admin status updated successfully!');
+      console.log("🎉 Admin status updated successfully!");
+      alert(`User admin status updated successfully! ${userToUpdate.email} is now ${!currentStatus ? 'an admin' : 'not an admin'}.`);
+      
     } catch (error) {
-      console.error('Error updating user:', error);
+      console.error('💥 Error updating user admin status:', error);
       alert(`Failed to update user admin status: ${error.message}`);
     }
   };
 
   const handleDeleteUser = async (userId) => {
-    if (window.confirm('Are you sure you want to delete this user?')) {
+    if (window.confirm('Are you sure you want to delete this user? This will permanently remove them from Firebase Auth and all their data.')) {
       try {
-        await deleteDoc(doc(db, 'users', userId));
+        console.log("🗑️ Deleting user:", userId);
+        
+        // Call Firebase Function to delete from both Auth and Firestore
+        const result = await deleteUser({ uid: userId });
+        
+        console.log("✅ User deletion result:", result);
+        
+        // Update local state to remove the user
         setUsers(users.filter(user => user.id !== userId));
-        alert('User deleted successfully!');
+        
+        alert('User deleted successfully from both authentication and database!');
       } catch (error) {
-        console.error('Error deleting user:', error);
+        console.error('💥 Error deleting user:', error);
         alert(`Failed to delete user: ${error.message}`);
       }
     }
@@ -665,7 +720,17 @@ const AdminDashboard = () => {
 
       {activeTab === 'users' && (
         <div className="admin-section">
-          <h2>User Management</h2>
+          <div className="section-header">
+            <h2>User Management</h2>
+            <button 
+              className="refresh-button" 
+              onClick={fetchData}
+              disabled={loading}
+              title="Refresh user list"
+            >
+              🔄 Refresh
+            </button>
+          </div>
           <div className="table-container">
             <table className="admin-table">
               <thead>
@@ -683,8 +748,8 @@ const AdminDashboard = () => {
                     <td>{userData.email}</td>
                     <td>{userData.displayName || 'N/A'}</td>
                     <td>
-                      <span className={userData.isAdmin ? 'admin-badge' : 'user-badge'}>
-                        {userData.isAdmin ? 'Admin' : 'User'}
+                      <span className={isUserAdmin(userData) ? 'admin-badge' : 'user-badge'}>
+                        {isUserAdmin(userData) ? 'Admin' : 'User'}
                       </span>
                     </td>
                     <td>
@@ -695,10 +760,10 @@ const AdminDashboard = () => {
                     </td>
                     <td className="actions">
                       <button 
-                        onClick={() => handleToggleAdmin(userData.id, userData.isAdmin)}
+                        onClick={() => handleToggleAdmin(userData.id, isUserAdmin(userData))}
                         className="btn btn-sm btn-outline-primary"
                       >
-                        {userData.isAdmin ? 'Remove Admin' : 'Make Admin'}
+                        {isUserAdmin(userData) ? 'Remove Admin' : 'Make Admin'}
                       </button>
                       <button 
                         onClick={() => handleDeleteUser(userData.id)}

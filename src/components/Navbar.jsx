@@ -72,7 +72,7 @@ const Navbar = () => {
               <span>{user.email}</span>
             </div>
             <button 
-              className="btn btn-secondary btn-sm"
+              className="btn btn-outline btn-sm"
               onClick={handleProfileClick}
             >
               Profile

@@ -6,27 +6,33 @@
 }
 
 .admin-header {
-  margin-bottom: 30px;
+  /* margin-bottom: 30px; */
   padding-bottom: 20px;
-  border-bottom: 2px solid #e0e0e0;
+  /* border-bottom: 2px solid #e0e0e0; */
 }
 
 .admin-header h1 {
   margin: 0 0 10px 0;
-  color: #ffffff;
+  color: #1f2937;
   font-size: 2rem;
+  font-weight: 700;
 }
 
 .admin-header p {
   margin: 0;
-  color: #ffffff;
+  color: #4b5563;
   font-size: 1rem;
+  font-weight: 500;
 }
 
 .debug-info {
   font-size: 0.8rem;
-  color: #e0e0e0;
+  color: #6b7280;
   font-family: monospace;
+  background: #f3f4f6;
+  padding: 0.5rem;
+  border-radius: 4px;
+  border: 1px solid #e5e7eb;
 }
 
 .success-message {
@@ -74,12 +80,20 @@
   border: none;
   font-size: 18px;
   cursor: pointer;
-  padding: 0;
-  width: 20px;
-  height: 20px;
+  padding: 4px;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  color: inherit;
+}
+
+.alert button:hover {
+  background: rgba(0, 0, 0, 0.1);
+  transform: scale(1.1);
 }
 
 .admin-tabs {
@@ -98,17 +112,42 @@
   border-radius: 6px 6px 0 0;
   font-size: 14px;
   font-weight: 500;
-  transition: all 0.2s;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.admin-tabs button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  transition: left 0.5s;
 }
 
 .admin-tabs button:hover {
   background-color: #e9ecef;
   color: #495057;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.admin-tabs button:hover::before {
+  left: 100%;
 }
 
 .admin-tabs button.active {
-  background-color: #007bff;
+  background-color: #4f46e5;
   color: white;
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
+}
+
+.admin-tabs button.active:hover {
+  background-color: #4338ca;
+  transform: translateY(-1px);
 }
 
 .loading {
@@ -157,8 +196,14 @@
   vertical-align: top;
 }
 
+.admin-table tr {
+  transition: all 0.2s ease;
+}
+
 .admin-table tr:hover {
   background-color: #f8f9fa;
+  transform: scale(1.01);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .role-badge {
@@ -269,10 +314,28 @@
 .form-group textarea,
 .form-group select {
   width: 100%;
-  padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  padding: 12px 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
   font-size: 14px;
+  transition: all 0.3s ease;
+  background: #ffffff;
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+  transform: translateY(-1px);
+}
+
+.form-group input:hover,
+.form-group textarea:hover,
+.form-group select:hover {
+  border-color: #9ca3af;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .form-group textarea {
@@ -560,9 +623,104 @@
   align-items: center;
 }
 
+/* Admin Action Buttons */
+.actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.actions .btn {
+  position: relative;
+  overflow: hidden;
+}
+
+.actions .btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.actions .btn:hover::before {
+  left: 100%;
+}
+
+/* Refresh Button */
+.refresh-button {
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.refresh-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.refresh-button:hover {
+  background: var(--color-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+}
+
+.refresh-button:hover::before {
+  left: 100%;
+}
+
+.refresh-button:active {
+  transform: translateY(0);
+}
+
+.refresh-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.refresh-button:disabled:hover {
+  background: var(--color-primary);
+  transform: none;
+  box-shadow: none;
+}
+
+.refresh-button:disabled:hover::before {
+  left: -100%;
+}
+
+/* Refresh Icon */
+.refresh-icon {
+  transition: transform var(--transition-normal);
+}
+
+.refresh-button:hover .refresh-icon:not(.icon-spin) {
+  transform: rotate(90deg);
+}
+
 /* Bulk Upload Section */
 .bulk-upload-section {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #f8f9fa;
   color: white;
   padding: 30px;
   border-radius: 12px;
@@ -589,7 +747,7 @@
 /* File Upload Area */
 .file-upload-area {
   background: rgba(255, 255, 255, 0.1);
-  border: 2px dashed rgba(255, 255, 255, 0.3);
+  border: 2px dashed gray;
   border-radius: 12px;
   padding: 40px 20px;
   text-align: center;
@@ -600,8 +758,8 @@
 
 .file-upload-area:hover,
 .file-upload-area.drag-active {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.6);
+  background: lightgray;
+  border-color: gray;
   transform: scale(1.02);
 }
 

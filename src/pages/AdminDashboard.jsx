@@ -4,6 +4,10 @@ import { db } from '../firebase/config';
 import { useAuth } from '../auth/AuthContext';
 import QuizJSONValidator from '../utils/jsonValidator';
 import { setAdminRole, deleteUser } from '../utils/adminUtils';
+import { RefreshCw } from 'lucide-react';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import ConfirmationModal from '../components/ConfirmationModal';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
@@ -16,6 +20,16 @@ const AdminDashboard = () => {
   const [editingQuiz, setEditingQuiz] = useState(null);
   const [successMessage, setSuccessMessage] = useState('');
   const [adminUsers, setAdminUsers] = useState(new Set()); // Track users with admin claims
+  
+  // Confirmation modal states
+  const [confirmationModal, setConfirmationModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'warning',
+    onConfirm: null,
+    isLoading: false
+  });
   
   // Bulk upload states
   const [showBulkUpload, setShowBulkUpload] = useState(false);
@@ -37,6 +51,43 @@ const AdminDashboard = () => {
   });
   const { user } = useAuth();
 
+  // Helper function to format dates
+  const formatDate = (date) => {
+    if (!date) return 'N/A';
+    
+    try {
+      // Handle Firestore Timestamp
+      if (date.toDate && typeof date.toDate === 'function') {
+        return date.toDate().toLocaleDateString();
+      }
+      
+      // Handle regular Date object
+      if (date instanceof Date) {
+        return date.toLocaleDateString();
+      }
+      
+      // Handle timestamp (seconds)
+      if (typeof date === 'number') {
+        return new Date(date * 1000).toLocaleDateString();
+      }
+      
+      // Handle string date
+      if (typeof date === 'string') {
+        return new Date(date).toLocaleDateString();
+      }
+      
+      // Handle object with seconds property (Firestore timestamp)
+      if (date.seconds) {
+        return new Date(date.seconds * 1000).toLocaleDateString();
+      }
+      
+      return 'Invalid Date';
+    } catch (error) {
+      console.error('Date formatting error:', error, 'Date:', date);
+      return 'Invalid Date';
+    }
+  };
+
   // Helper function to check if a user is admin
   const isUserAdmin = (userData) => {
     // Check if user has been granted admin via Firebase Function
@@ -46,6 +97,42 @@ const AdminDashboard = () => {
     
     // Check isAdmin field in Firestore
     return userData.isAdmin === true;
+  };
+
+  // Helper functions for confirmation modal
+  const showConfirmation = (title, message, type, onConfirm) => {
+    setConfirmationModal({
+      isOpen: true,
+      title,
+      message,
+      type,
+      onConfirm,
+      isLoading: false
+    });
+  };
+
+  const closeConfirmation = () => {
+    setConfirmationModal({
+      isOpen: false,
+      title: '',
+      message: '',
+      type: 'warning',
+      onConfirm: null,
+      isLoading: false
+    });
+  };
+
+  const handleConfirm = async () => {
+    if (confirmationModal.onConfirm) {
+      setConfirmationModal(prev => ({ ...prev, isLoading: true }));
+      try {
+        await confirmationModal.onConfirm();
+        closeConfirmation();
+      } catch (error) {
+        setConfirmationModal(prev => ({ ...prev, isLoading: false }));
+        throw error; // Re-throw to be handled by the calling function
+      }
+    }
   };
 
   // Sample data for demonstration
@@ -109,12 +196,14 @@ const AdminDashboard = () => {
         const usersSnapshot = await getDocs(collection(db, 'users'));
         const usersData = usersSnapshot.docs.map(doc => {
           const data = doc.data();
+          console.log('Raw user data:', data); // Debug log
+          
           return {
             id: doc.id,
             ...data,
             // Ensure date fields are properly formatted
-            createdAt: data.createdAt?.toDate?.() || data.createdAt || new Date(),
-            lastLoginAt: data.lastLoginAt?.toDate?.() || data.lastLoginAt || new Date(),
+            createdAt: data.createdAt?.toDate?.() || (data.createdAt ? new Date(data.createdAt) : new Date()),
+            lastLoginAt: data.lastLoginAt?.toDate?.() || (data.lastLoginAt ? new Date(data.lastLoginAt) : new Date()),
           };
         });
         
@@ -215,46 +304,124 @@ const AdminDashboard = () => {
       ));
       
       console.log("🎉 Admin status updated successfully!");
-      alert(`User admin status updated successfully! ${userToUpdate.email} is now ${!currentStatus ? 'an admin' : 'not an admin'}.`);
+      
+      // Show success toast
+      toast.success(
+        `User admin status updated successfully! ${userToUpdate.email} is now ${!currentStatus ? 'an admin' : 'not an admin'}.`,
+        {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        }
+      );
       
     } catch (error) {
       console.error('💥 Error updating user admin status:', error);
-      alert(`Failed to update user admin status: ${error.message}`);
+      
+      // Show error toast
+      toast.error(`Failed to update user admin status: ${error.message}`, {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
     }
   };
 
   const handleDeleteUser = async (userId) => {
-    if (window.confirm('Are you sure you want to delete this user? This will permanently remove them from Firebase Auth and all their data.')) {
-      try {
-        console.log("🗑️ Deleting user:", userId);
-        
-        // Call Firebase Function to delete from both Auth and Firestore
-        const result = await deleteUser({ uid: userId });
-        
-        console.log("✅ User deletion result:", result);
-        
-        // Update local state to remove the user
-        setUsers(users.filter(user => user.id !== userId));
-        
-        alert('User deleted successfully from both authentication and database!');
-      } catch (error) {
-        console.error('💥 Error deleting user:', error);
-        alert(`Failed to delete user: ${error.message}`);
+    const userToDelete = users.find(u => u.id === userId);
+    const userEmail = userToDelete?.email || 'Unknown User';
+    
+    showConfirmation(
+      'Delete User',
+      `Are you sure you want to delete "${userEmail}"? This will permanently remove them from Firebase Auth and all their data. This action cannot be undone.`,
+      'danger',
+      async () => {
+        try {
+          console.log("🗑️ Deleting user:", userId);
+          
+          // Call Firebase Function to delete from both Auth and Firestore
+          const result = await deleteUser({ uid: userId });
+          
+          console.log("✅ User deletion result:", result);
+          
+          // Update local state to remove the user
+          setUsers(users.filter(user => user.id !== userId));
+          
+          // Show success toast
+          toast.success(`User "${userEmail}" deleted successfully from both authentication and database!`, {
+            position: "top-right",
+            autoClose: 5000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+          });
+          
+        } catch (error) {
+          console.error('💥 Error deleting user:', error);
+          
+          // Show error toast
+          toast.error(`Failed to delete user: ${error.message}`, {
+            position: "top-right",
+            autoClose: 5000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+          });
+          
+          throw error; // Re-throw to be handled by the modal
+        }
       }
-    }
+    );
   };
 
   const handleDeleteQuiz = async (quizId) => {
-    if (window.confirm('Are you sure you want to delete this quiz?')) {
-      try {
-        await deleteDoc(doc(db, 'quizzes', quizId));
-        setQuizzes(quizzes.filter(quiz => quiz.id !== quizId));
-        alert('Quiz deleted successfully!');
-      } catch (error) {
-        console.error('Error deleting quiz:', error);
-        alert(`Failed to delete quiz: ${error.message}`);
+    const quizToDelete = quizzes.find(q => q.id === quizId);
+    const quizTitle = quizToDelete?.title || 'Unknown Quiz';
+    
+    showConfirmation(
+      'Delete Quiz',
+      `Are you sure you want to delete "${quizTitle}"? This action cannot be undone.`,
+      'danger',
+      async () => {
+        try {
+          await deleteDoc(doc(db, 'quizzes', quizId));
+          setQuizzes(quizzes.filter(quiz => quiz.id !== quizId));
+          
+          // Show success toast
+          toast.success(`Quiz "${quizTitle}" deleted successfully!`, {
+            position: "top-right",
+            autoClose: 5000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+          });
+          
+        } catch (error) {
+          console.error('Error deleting quiz:', error);
+          
+          // Show error toast
+          toast.error(`Failed to delete quiz: ${error.message}`, {
+            position: "top-right",
+            autoClose: 5000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+          });
+          
+          throw error; // Re-throw to be handled by the modal
+        }
       }
-    }
+    );
   };
 
   const handleEditQuiz = (quiz) => {
@@ -288,7 +455,14 @@ const AdminDashboard = () => {
   const handleSaveQuiz = async () => {
     try {
       if (!quizForm.title.trim()) {
-        alert('Please enter a quiz title');
+        toast.error('Please enter a quiz title', {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
         return;
       }
 
@@ -299,12 +473,28 @@ const AdminDashboard = () => {
         setQuizzes(quizzes.map(quiz => 
           quiz.id === editingQuiz.id ? { ...quiz, ...quizForm } : quiz
         ));
-        alert('Quiz updated successfully!');
+        
+        toast.success('Quiz updated successfully!', {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
       } else {
         // Create new quiz
         const docRef = await addDoc(collection(db, 'quizzes'), quizForm);
         setQuizzes([...quizzes, { id: docRef.id, ...quizForm }]);
-        alert('Quiz created successfully!');
+        
+        toast.success('Quiz created successfully!', {
+          position: "top-right",
+          autoClose: 5000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
       }
 
       setShowQuizModal(false);
@@ -313,7 +503,15 @@ const AdminDashboard = () => {
       setQuizForm({ title: '', description: '', questions: [] });
     } catch (error) {
       console.error('Error saving quiz:', error);
-      alert(`Failed to save quiz: ${error.message}`);
+      
+      toast.error(`Failed to save quiz: ${error.message}`, {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
     }
   };
 
@@ -345,18 +543,39 @@ const AdminDashboard = () => {
       questions: [...quizForm.questions, newQuestion]
     });
     
-    // Show success message
-    setSuccessMessage('Question added successfully! Scroll down to see the new question.');
-    
-    // Clear the message after 3 seconds
-    setTimeout(() => {
-      setSuccessMessage('');
-    }, 3000);
+    // Show success toast
+    toast.success('Question added successfully! Scroll down to see the new question.', {
+      position: "top-right",
+      autoClose: 3000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+    });
   };
 
   const removeQuestion = (questionIndex) => {
-    const updatedQuestions = quizForm.questions.filter((_, index) => index !== questionIndex);
-    setQuizForm({ ...quizForm, questions: updatedQuestions });
+    const question = quizForm.questions[questionIndex];
+    const questionText = question?.question || `Question ${questionIndex + 1}`;
+    
+    showConfirmation(
+      'Remove Question',
+      `Are you sure you want to remove "${questionText}"? This action cannot be undone.`,
+      'warning',
+      () => {
+        const updatedQuestions = quizForm.questions.filter((_, index) => index !== questionIndex);
+        setQuizForm({ ...quizForm, questions: updatedQuestions });
+        
+        toast.success('Question removed successfully!', {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+      }
+    );
   };
 
   // Bulk Upload Functions
@@ -695,12 +914,12 @@ const AdminDashboard = () => {
     <div className="admin-dashboard">
       <div className="admin-header">
         <h1>Admin Dashboard</h1>
-        <p>Welcome, {user?.displayName || user?.email}</p>
-        <p className="debug-info">User ID: {user?.uid}</p>
+        <p><b>Welcome, {user?.displayName || user?.email}</b></p>
+        {/* <p className="debug-info">User ID: {user?.uid}</p>
         {error && <div className="error-message">{error}</div>}
         <div className="success-message">
           ✅ Firestore rules updated to support admin operations!
-        </div>
+        </div> */}
       </div>
 
       <div className="admin-tabs">
@@ -728,7 +947,8 @@ const AdminDashboard = () => {
               disabled={loading}
               title="Refresh user list"
             >
-              🔄 Refresh
+              <RefreshCw className={`refresh-icon ${loading ? 'icon-spin' : ''}`} size={16} />
+              Refresh
             </button>
           </div>
           <div className="table-container">
@@ -753,10 +973,7 @@ const AdminDashboard = () => {
                       </span>
                     </td>
                     <td>
-                      {userData.createdAt ? 
-                        new Date(userData.createdAt.seconds * 1000).toLocaleDateString() : 
-                        'N/A'
-                      }
+                      {formatDate(userData.createdAt)}
                     </td>
                     <td className="actions">
                       <button 
@@ -785,11 +1002,11 @@ const AdminDashboard = () => {
           <div className="section-header">
             <h2>Quiz Management</h2>
             <div className="quiz-actions">
-              <button className="btn btn-primary" onClick={handleCreateQuiz}>
+              <button className="btn btn-primary btn-sm" onClick={handleCreateQuiz}>
                 Create New Quiz
               </button>
               <button 
-                className="btn btn-secondary" 
+                className="btn btn-outline btn-sm" 
                 onClick={() => setShowBulkUpload(!showBulkUpload)}
               >
                 {showBulkUpload ? 'Hide' : 'Bulk Upload'}
@@ -804,7 +1021,7 @@ const AdminDashboard = () => {
               <p>Upload a JSON file to import multiple questions at once.</p>
               
               <div className="upload-actions">
-                <button className="btn btn-outline" onClick={downloadTemplate}>
+                <button className="btn btn-outline btn-sm" onClick={downloadTemplate}>
                   📥 Download Template
                 </button>
               </div>
@@ -826,7 +1043,7 @@ const AdminDashboard = () => {
                     style={{ display: 'none' }}
                     id="bulk-upload-input"
                   />
-                  <label htmlFor="bulk-upload-input" className="btn btn-outline-primary">
+                  <label htmlFor="bulk-upload-input" className="btn btn-outline-primary btn-sm">
                     Choose File
                   </label>
                 </div>
@@ -983,12 +1200,6 @@ const AdminDashboard = () => {
                   </button>
                 </div>
                 
-                {/* Success Message */}
-                {successMessage && (
-                  <div className="success-message">
-                    {successMessage}
-                  </div>
-                )}
                 
                 {quizForm.questions.map((question, questionIndex) => (
                   <div key={question.id} className="question-item">
@@ -996,7 +1207,7 @@ const AdminDashboard = () => {
                       <span>Question {questionIndex + 1}</span>
                       <button 
                         type="button" 
-                        className="btn btn-outline-danger btn-sm"
+                        className="btn btn-danger btn-sm"
                         onClick={() => removeQuestion(questionIndex)}
                       >
                         Remove
@@ -1049,16 +1260,41 @@ const AdminDashboard = () => {
               </div>
             </div>
             <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={closeQuizModal}>
+              <button className="btn btn-outline-danger btn-sm" onClick={closeQuizModal}>
                 Cancel
               </button>
-              <button className="btn btn-primary" onClick={handleSaveQuiz}>
+              <button className="btn btn-primary btn-sm" onClick={handleSaveQuiz}>
                 {editingQuiz ? 'Update Quiz' : 'Create Quiz'}
               </button>
             </div>
           </div>
         </div>
       )}
+      
+      {/* Toast Container */}
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
+      
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={confirmationModal.isOpen}
+        onClose={closeConfirmation}
+        onConfirm={handleConfirm}
+        title={confirmationModal.title}
+        message={confirmationModal.message}
+        type={confirmationModal.type}
+        isLoading={confirmationModal.isLoading}
+      />
     </div>
   );
 };

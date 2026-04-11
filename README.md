@@ -1,33 +1,33 @@
-# Know-Map Quiz App 🎯
+# Know-Map Quiz App 
 
 A modern, responsive quiz application built with React, Firebase, and Vite featuring multi-method authentication and professional UI/UX.
 
-## ✨ Features
+## Features
 
-### 🔐 **Multi-Method Authentication**
+### **Multi-Method Authentication**
 - **Google Sign-In**: One-click authentication with Google accounts
 - **Phone/OTP**: SMS-based verification with international phone support
 - **Email/Password**: Traditional email registration and login
 
-### 🎮 **Quiz Experience** 
+###  **Quiz Experience** 
 - Interactive quiz interface with real-time feedback
 - Progress tracking and scoring system
 - Professional results page with restart functionality
 
-### 🛡️ **Security & UX**
+### **Security & UX**
 - Protected routes (authentication required for quiz access)
 - Public homepage (browse without signing in)
 - Smart navigation with intended destination preservation
 - Comprehensive error handling and user feedback
 
-### 📱 **Modern Tech Stack**
+### **Modern Tech Stack**
 - **React 19+**: Latest React with hooks and functional components
 - **Firebase**: Authentication, hosting-ready configuration
 - **React Router**: Client-side routing with protected routes
 - **Vite**: Fast development server and build tool
 - **Responsive Design**: Mobile-first, works on all devices
 
-## 🚀 Quick Start
+##  Quick Start
 
 ### **Prerequisites**
 - Node.js 18+ and npm
@@ -65,7 +65,7 @@ VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
 VITE_FIREBASE_APP_ID=your_app_id
 ```
 
-## 🌐 App Structure
+##  App Structure
 
 ### **Routes**
 - `/` - Public homepage (no auth required)
@@ -80,7 +80,7 @@ VITE_FIREBASE_APP_ID=your_app_id
 4. Complete quiz and view results
 5. Automatic redirect to intended destination
 
-## 🛠️ Development
+##  Development
 
 ### **Project Structure**
 ```
@@ -109,7 +109,7 @@ npm run preview      # Preview production build
 npm run lint         # Run ESLint
 ```
 
-## 🎯 Usage
+##  Usage
 
 1. **Browse Freely**: Visit the homepage without authentication
 2. **Start Quiz**: Click "Start Quiz" to begin (triggers sign-in)
@@ -117,7 +117,7 @@ npm run lint         # Run ESLint
 4. **Take Quiz**: Answer questions with immediate feedback
 5. **View Results**: See your score and restart if desired
 
-## 🔧 Configuration
+##  Configuration
 
 ### **Environment Variables**
 All Firebase configuration is handled through environment variables in `.env.local`. Never commit this file to version control.
@@ -127,7 +127,7 @@ All Firebase configuration is handled through environment variables in `.env.loc
 - **Styling**: Modify `src/App.css` and component CSS files
 - **Authentication**: Configure additional providers in Firebase Console
 
-## 📚 Dependencies
+##  Dependencies
 
 ### **Core**
 - React 19+ with Vite
@@ -138,7 +138,7 @@ All Firebase configuration is handled through environment variables in `.env.loc
 - ESLint (code quality)
 - Vite (build tool)
 
-## 🚀 Deployment
+##  Deployment
 
 Ready for deployment to:
 - **Firebase Hosting**: `npm run build && firebase deploy`
@@ -146,7 +146,7 @@ Ready for deployment to:
 - **Netlify**: Deploy build folder
 - **Any static hosting**: Use `dist/` folder after `npm run build`
 
-## 📱 Browser Support
+##  Browser Support
 
 - Modern browsers (Chrome, Firefox, Safari, Edge)
 - Mobile browsers (iOS Safari, Chrome Mobile)

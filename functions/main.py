@@ -3,7 +3,9 @@ import logging
 from datetime import datetime
 import firebase_admin
 from firebase_admin import credentials, firestore, auth
-from firebase_functions import https_fn
+from firebase_functions import https_fn, options
+from flask import Flask, request, jsonify
+from flask_cors import CORS
 
 # Global variables for lazy initialization
 db = None
@@ -182,61 +184,202 @@ def analyze_quiz_performance(user_answers, quiz_questions):
 
 
 # Firebase Cloud Function entry point
-@https_fn.on_request()
-def know_map_api(req):
-    """Firebase Cloud Function entry point"""
+# Initialize Flask app
+app = Flask(__name__)
+
+# Enable CORS with specific configuration
+CORS(app, resources={
+    r"/*": {
+        "origins": "*",
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"],
+        "max_age": 3600
+    }
+})
+
+@app.route('/')
+def index():
+    """API root endpoint"""
+    return jsonify({
+        'message': 'Know-Map API is running',
+        'version': '1.0',
+        'endpoints': ['/submitQuiz', '/health']
+    })
+
+@app.route('/health')
+def health():
+    """Health check endpoint"""
+    return jsonify({
+        'status': 'healthy',
+        'timestamp': datetime.utcnow().isoformat(),
+        'service': 'know-map-api'
+    })
+
+@app.route('/submitQuiz', methods=['POST', 'OPTIONS'])
+def submit_quiz():
+    """Handle quiz submission"""
+    logger = get_logger()
+    logger.info("--- CANARY LOG: submit_quiz endpoint hit ---")
+    
     try:
-        # Handle CORS preflight requests
-        if req.method == 'OPTIONS':
-            headers = {
-                'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-                'Access-Control-Max-Age': '3600'
-            }
-            return ('', 204, headers)
+        db = get_firestore_client()
         
-        # Set CORS headers for actual requests
-        headers = {
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-            'Content-Type': 'application/json'
+        # Verify authentication
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'error': 'No valid authorization token provided'}), 401
+        
+        id_token = auth_header.split('Bearer ')[1]
+        user_info = verify_firebase_token(id_token)
+        
+        if not user_info:
+            return jsonify({'error': 'Invalid authentication token'}), 401
+        
+        user_id = user_info['uid']
+        logger.info(f"Processing quiz submission for user: {user_id}")
+        
+        # Parse request data
+        request_json = request.get_json()
+        if not request_json:
+            return jsonify({'error': 'No JSON data provided'}), 400
+        
+        quiz_id = request_json.get('quizId')
+        user_answers = request_json.get('answers', {})
+        
+        if not quiz_id:
+            return jsonify({'error': 'Quiz ID is required'}), 400
+        
+        # Fetch quiz questions from Firestore
+        logger.info(f"Attempting to fetch quiz with ID: {quiz_id}")
+        quiz_ref = db.collection('quizzes').document(quiz_id)
+        quiz_doc = quiz_ref.get()
+        
+        if not quiz_doc.exists:
+            logger.error(f"Quiz document {quiz_id} not found in Firestore")
+            return jsonify({'error': 'Quiz not found'}), 404
+        
+        logger.info(f"Quiz document found with ID: {quiz_id}")
+        quiz_data = quiz_doc.to_dict()
+        
+        # Try to get questions from the main document first
+        quiz_questions = quiz_data.get('questions', [])
+        logger.info(f"Found {len(quiz_questions)} questions in main document")
+        
+        # If no questions in main document, try the subcollection
+        if not quiz_questions:
+            logger.info("No questions in main document, trying subcollection...")
+            questions_collection = db.collection('quizzes').document(quiz_id).collection('questions')
+            questions_docs = questions_collection.get()
+            
+            for doc in questions_docs:
+                question_data = doc.to_dict()
+                quiz_questions.append(question_data)
+                
+            logger.info(f"Found {len(quiz_questions)} questions in subcollection")
+        
+        # Log the structure of the first question for debugging
+        if quiz_questions:
+            logger.info(f"First question structure: {quiz_questions[0]}")
+        
+        if not quiz_questions:
+            logger.error(f"No questions found for quiz {quiz_id}")
+            return jsonify({'error': 'No questions found in quiz'}), 400
+        
+        # Analyze performance
+        analysis_result = analyze_quiz_performance(user_answers, quiz_questions)
+        
+        # Calculate additional metrics
+        total_questions = analysis_result['totalQuestions']
+        score = analysis_result['totalScore']
+        percentage = analysis_result['overallPercentage']
+        is_perfect_score = percentage == 100
+        
+        # Calculate XP earned
+        xp_earned = score * 10
+        if is_perfect_score:
+            xp_earned += 50
+        
+        # Get current timestamp
+        submission_time = datetime.utcnow()
+        
+        # Create comprehensive quiz attempt record
+        attempt_data = {
+            'userId': user_id,
+            'quizId': quiz_id,
+            'quizTitle': quiz_data.get('title', 'Unknown Quiz'),
+            'startedAt': submission_time,
+            'completedAt': submission_time,
+            'timeSpent': request_json.get('timeSpent', 0),
+            'score': score,
+            'totalQuestions': total_questions,
+            'percentage': percentage,
+            'isPerfectScore': is_perfect_score,
+            'topicBreakdown': analysis_result['classifiedTopics'],
+            'questionBreakdown': analysis_result['questionBreakdown'],
+            'difficultyLevel': quiz_data.get('difficulty', 'medium'),
+            'deviceType': request_json.get('deviceType', 'unknown'),
+            'retryAttempt': 1,
+            'xpEarned': xp_earned,
+            'badgesUnlocked': [],
+            'userEmail': user_info.get('email', 'Unknown'),
+            'reportVersion': '2.0'
         }
         
-        # Route handling
-        if req.path == '/' and req.method == 'GET':
-            response_data = {
-                'message': 'Know-Map API is running',
-                'version': '1.0',
-                'endpoints': ['/submitQuiz', '/health']
-            }
-            return (json.dumps(response_data), 200, headers)
+        # Save enhanced quiz attempt
+        attempt_ref = db.collection('quiz-attempts').document()
+        attempt_ref.set(attempt_data)
+        attempt_id = attempt_ref.id
         
-        elif req.path == '/health' and req.method == 'GET':
-            response_data = {
-                'status': 'healthy',
-                'timestamp': datetime.utcnow().isoformat(),
-                'service': 'know-map-api'
-            }
-            return (json.dumps(response_data), 200, headers)
+        # Save legacy report for backward compatibility
+        legacy_report_data = {
+            'userId': user_id,
+            'quizId': quiz_id,
+            'submittedAt': submission_time,
+            'userAnswers': user_answers,
+            'analysis': analysis_result,
+            'quizTitle': quiz_data.get('title', 'Unknown Quiz'),
+            'userEmail': user_info.get('email', 'Unknown'),
+            'reportVersion': '1.0'
+        }
         
-        elif req.path == '/submitQuiz' and req.method == 'POST':
-            return handle_submit_quiz(req, headers)
+        report_ref = db.collection('reports').document()
+        report_ref.set(legacy_report_data)
+        report_id = report_ref.id
         
-        else:
-            response_data = {'error': 'Not found'}
-            return (json.dumps(response_data), 404, headers)
-            
+        # Update user profile statistics
+        try:
+            await_update_user_stats(db, user_id, attempt_data)
+        except Exception as e:
+            logger.warning(f"Failed to update user stats: {str(e)}")
+        
+        logger.info(f"Quiz attempt recorded: {attempt_id}, Legacy report: {report_id}")
+        
+        # Return response
+        return jsonify({
+            'success': True,
+            'attemptId': attempt_id,
+            'reportId': report_id,
+            'analysis': analysis_result,
+            'xpEarned': xp_earned,
+            'isPerfectScore': is_perfect_score,
+            'message': 'Quiz submitted and analyzed successfully'
+        }), 200
+        
     except Exception as e:
         logger = get_logger()
-        logger.error(f"Error in know_map_api: {str(e)}")
-        headers = {
-            'Access-Control-Allow-Origin': '*',
-            'Content-Type': 'application/json'
-        }
-        response_data = {'error': 'Internal server error'}
-        return (json.dumps(response_data), 500, headers)
+        logger.error(f"Error in submit_quiz: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+@https_fn.on_request(
+    cors=options.CorsOptions(
+        cors_origins="*",
+        cors_methods=["get", "post", "options"],
+    )
+)
+def know_map_api(req: https_fn.Request) -> https_fn.Response:
+    """Firebase Cloud Function entry point that wraps Flask app"""
+    with app.request_context(req.environ):
+        return app.full_dispatch_request()
 
 def await_update_user_stats(db, user_id, attempt_data):
     """Update user profile statistics after quiz completion"""
@@ -290,176 +433,3 @@ def await_update_user_stats(db, user_id, attempt_data):
         logger = get_logger()
         logger.error(f"Error updating user stats: {str(e)}")
         raise
-
-
-def handle_submit_quiz(req, headers):
-    """Handle quiz submission"""
-    logger = get_logger()
-    logger.info("--- CANARY LOG: handle_submit_quiz function entered ---")
-    try:
-        db = get_firestore_client()
-        
-        # Verify authentication
-        auth_header = req.headers.get('Authorization')
-        if not auth_header or not auth_header.startswith('Bearer '):
-            response_data = {'error': 'No valid authorization token provided'}
-            return (json.dumps(response_data), 401, headers)
-        
-        id_token = auth_header.split('Bearer ')[1]
-        user_info = verify_firebase_token(id_token)
-        
-        if not user_info:
-            response_data = {'error': 'Invalid authentication token'}
-            return (json.dumps(response_data), 401, headers)
-        
-        user_id = user_info['uid']
-        logger.info(f"Processing quiz submission for user: {user_id}")
-        
-        # Parse request data
-        request_json = req.get_json()
-        if not request_json:
-            response_data = {'error': 'No JSON data provided'}
-            return (json.dumps(response_data), 400, headers)
-        
-        quiz_id = request_json.get('quizId')
-        user_answers = request_json.get('answers', {})
-        
-        if not quiz_id:
-            response_data = {'error': 'Quiz ID is required'}
-            return (json.dumps(response_data), 400, headers)
-        
-        # Fetch quiz questions from Firestore - with detailed logging
-        logger.info(f"Attempting to fetch quiz with ID: {quiz_id}")
-        quiz_ref = db.collection('quizzes').document(quiz_id)
-        quiz_doc = quiz_ref.get()
-        
-        if not quiz_doc.exists:
-            logger.error(f"Quiz document {quiz_id} not found in Firestore")
-            response_data = {'error': 'Quiz not found'}
-            return (json.dumps(response_data), 404, headers)
-        
-        logger.info(f"Quiz document found with ID: {quiz_id}")
-        quiz_data = quiz_doc.to_dict()
-        
-        # Try to get questions from the main document first (this is the new approach)
-        quiz_questions = quiz_data.get('questions', [])
-        logger.info(f"Found {len(quiz_questions)} questions in main document")
-        
-        # If no questions in main document, try the subcollection (old approach)
-        if not quiz_questions:
-            logger.info("No questions in main document, trying subcollection...")
-            questions_collection = db.collection('quizzes').document(quiz_id).collection('questions')
-            questions_docs = questions_collection.get()
-            
-            for doc in questions_docs:
-                question_data = doc.to_dict()
-                quiz_questions.append(question_data)
-                
-            logger.info(f"Found {len(quiz_questions)} questions in subcollection")
-        
-        # Log the structure of the first question for debugging
-        if quiz_questions:
-            logger.info(f"First question structure: {quiz_questions[0]}")
-        
-        if not quiz_questions:
-            logger.error(f"No questions found for quiz {quiz_id} in either main document or subcollection")
-            response_data = {'error': 'No questions found in quiz'}
-            return (json.dumps(response_data), 400, headers)
-        
-        # Analyze performance
-        analysis_result = analyze_quiz_performance(user_answers, quiz_questions)
-        
-        # Calculate additional metrics for profile tracking
-        total_questions = analysis_result['totalQuestions']
-        score = analysis_result['totalScore']
-        percentage = analysis_result['overallPercentage']
-        is_perfect_score = percentage == 100
-        
-        # Calculate XP earned (example: base 10 XP + bonus for high scores)
-        xp_earned = 10 + (score * 2) + (50 if is_perfect_score else 0)
-        
-        # Get current timestamp
-        submission_time = datetime.utcnow()
-        
-        # Create comprehensive quiz attempt record
-        attempt_data = {
-            'userId': user_id,
-            'quizId': quiz_id,
-            'quizTitle': quiz_data.get('title', 'Unknown Quiz'),
-            
-            # Timing
-            'startedAt': submission_time,  # Frontend could provide actual start time
-            'completedAt': submission_time,
-            'timeSpent': request_json.get('timeSpent', 0),  # Frontend should provide this
-            
-            # Results
-            'score': score,
-            'totalQuestions': total_questions,
-            'percentage': percentage,
-            'isPerfectScore': is_perfect_score,
-            
-            # Detailed breakdown
-            'topicBreakdown': analysis_result['classifiedTopics'],
-            'questionBreakdown': analysis_result['questionBreakdown'],
-            
-            # Analytics
-            'difficultyLevel': quiz_data.get('difficulty', 'medium'),
-            'deviceType': request_json.get('deviceType', 'unknown'),
-            'retryAttempt': 1,  # TODO: Calculate actual retry number
-            
-            # Gamification
-            'xpEarned': xp_earned,
-            'badgesUnlocked': [],  # TODO: Implement badge system
-            
-            # Metadata
-            'userEmail': user_info.get('email', 'Unknown'),
-            'reportVersion': '2.0'
-        }
-        
-        # Save enhanced quiz attempt to new collection
-        attempt_ref = db.collection('quiz-attempts').document()
-        attempt_ref.set(attempt_data)
-        attempt_id = attempt_ref.id
-        
-        # Also save to legacy reports collection for backward compatibility
-        legacy_report_data = {
-            'userId': user_id,
-            'quizId': quiz_id,
-            'submittedAt': submission_time,
-            'userAnswers': user_answers,
-            'analysis': analysis_result,
-            'quizTitle': quiz_data.get('title', 'Unknown Quiz'),
-            'userEmail': user_info.get('email', 'Unknown'),
-            'reportVersion': '1.0'
-        }
-        
-        report_ref = db.collection('reports').document()
-        report_ref.set(legacy_report_data)
-        report_id = report_ref.id
-        
-        # Update user profile statistics
-        try:
-            await_update_user_stats(db, user_id, attempt_data)
-        except Exception as e:
-            logger.warning(f"Failed to update user stats: {str(e)}")
-        
-        logger.info(f"Quiz attempt recorded: {attempt_id}, Legacy report: {report_id}")
-        
-        # Return response with both IDs
-        response_data = {
-            'success': True,
-            'attemptId': attempt_id,
-            'reportId': report_id,
-            'analysis': analysis_result,
-            'xpEarned': xp_earned,
-            'isPerfectScore': is_perfect_score,
-            'message': 'Quiz submitted and analyzed successfully'
-        }
-        return (json.dumps(response_data), 200, headers)
-        
-    except Exception as e:
-        logger = get_logger()
-        logger.error(f"Error in handle_submit_quiz: {str(e)}")
-        response_data = {'error': 'Internal server error'}
-        return (json.dumps(response_data), 500, headers)
-

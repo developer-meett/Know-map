@@ -680,7 +680,7 @@
 }
 
 .refresh-button:hover {
-  background: var(--color-primary-hover);
+  background: rgb(142, 141, 141);
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
 }
@@ -721,7 +721,7 @@
 /* Bulk Upload Section */
 .bulk-upload-section {
   background: #f8f9fa;
-  color: white;
+  color: rgb(117, 112, 112);
   padding: 30px;
   border-radius: 12px;
   margin-bottom: 30px;

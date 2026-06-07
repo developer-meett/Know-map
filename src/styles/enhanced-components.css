@@ -101,7 +101,7 @@
 .form-group-enhanced .form-control:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
   transform: translateY(-1px);
 }
 
@@ -127,7 +127,7 @@
 
 .input-group-enhanced:focus-within {
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
 }
 
 .input-group-enhanced .input-addon {
@@ -328,7 +328,7 @@
 .loading-enhanced .spinner-enhanced {
   width: 40px;
   height: 40px;
-  border: 3px solid rgba(79, 70, 229, 0.1);
+  border: 3px solid rgba(13, 148, 136, 0.1);
   border-top: 3px solid var(--color-primary);
   border-radius: 50%;
   animation: spin-enhanced 1s linear infinite;

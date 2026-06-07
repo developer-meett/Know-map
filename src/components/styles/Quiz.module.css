@@ -85,19 +85,19 @@
 
 /* Selected State: Bold primary blue border, light blue background, bold text */
 .quizOptionSelected {
-  border-color: #4f46e5 !important; /* Indigo border to match theme */
-  background-color: #eef2ff !important; /* Light indigo background */
+  border-color: #0d9488 !important; /* Indigo border to match theme */
+  background-color: #f0fdfa !important; /* Light indigo background */
   color: var(--color-text-primary) !important;
   font-weight: var(--font-weight-bold) !important; /* Bold text */
   transform: translateY(-2px) scale(1.02) !important;
-  box-shadow: 0 6px 16px rgba(79, 70, 229, 0.2) !important;
+  box-shadow: 0 6px 16px rgba(13, 148, 136, 0.2) !important;
 }
 
 .quizOptionSelected:hover {
-  background-color: #eef2ff !important;
-  border-color: #4f46e5 !important;
+  background-color: #f0fdfa !important;
+  border-color: #0d9488 !important;
   transform: translateY(-2px) scale(1.02) !important;
-  box-shadow: 0 6px 16px rgba(79, 70, 229, 0.2) !important;
+  box-shadow: 0 6px 16px rgba(13, 148, 136, 0.2) !important;
 }
 
 .quizOptionDontKnow {

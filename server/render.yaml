@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: know-map-server
+    runtime: node
+    buildCommand: npm install
+    startCommand: node index.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: MONGO_URI
+        sync: false   # Set in Render dashboard
+      - key: JWT_SECRET
+        sync: false   # Set in Render dashboard
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: CLIENT_URL
+        sync: false   # Set to your Vercel URL e.g. https://know-map.vercel.app
+      - key: GOOGLE_CLIENT_ID
+        sync: false   # Set in Render dashboard

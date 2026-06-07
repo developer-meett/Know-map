@@ -1,66 +1,27 @@
-import React, { useState, useEffect } from 'react';
-import { Navigate } from 'react-router-dom';
+import React from 'react';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
-import { checkIsAdmin } from '../utils/adminUtils';
-import { logger } from '../utils/logger';
 
 const AdminRoute = ({ children }) => {
   const { user, initializing } = useAuth();
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [checking, setChecking] = useState(true);
+  const location = useLocation();
 
-  useEffect(() => {
-    const checkAdminStatus = async () => {
-      if (user) {
-        try {
-          logger.debug('AdminRoute: Checking admin status for user:', user.email);
-          
-          // Force refresh the token to get latest custom claims
-          const idTokenResult = await user.getIdTokenResult(true);
-          
-          const adminStatus = await checkIsAdmin(user);
-          setIsAdmin(adminStatus);
-          logger.debug('Admin status checked:', adminStatus);
-        } catch (error) {
-          logger.error('Error checking admin status:', error);
-          setIsAdmin(false);
-        }
-      } else {
-        setIsAdmin(false);
-      }
-      setChecking(false);
-    };
-
-    if (!initializing) {
-      checkAdminStatus();
-    }
-  }, [user, initializing]);
-
-  // Show loading while checking authentication and admin status
-  if (initializing || checking) {
+  if (initializing) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '100vh' 
-      }}>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
         <div>Loading...</div>
       </div>
     );
   }
 
-  // Redirect to login if not authenticated
   if (!user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Redirect to home if not admin
-  if (!isAdmin) {
+  if (!user.isAdmin) {
     return <Navigate to="/" replace />;
   }
 
-  // Render the protected admin component
   return children;
 };
 

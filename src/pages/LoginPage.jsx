@@ -1,9 +1,6 @@
 import React from 'react';
 import SignIn from '../components/SignIn';
-import './styles/LoginPage.module.css';
 
-const LoginPage = () => {
-  return <SignIn />;
-};
+const LoginPage = () => <SignIn />;
 
 export default LoginPage;

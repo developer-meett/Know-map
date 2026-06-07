@@ -1,4 +1,5 @@
 import User from '../models/User.js';
+import QuizAttempt from '../models/QuizAttempt.js';
 
 const USER_PUBLIC_FIELDS = '_id email displayName photoURL isAdmin role bio preferences stats createdAt';
 
@@ -109,7 +110,10 @@ export const deleteUser = async (req, res) => {
     const user = await User.findByIdAndDelete(req.params.id);
     if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
 
-    return res.status(200).json({ success: true, message: 'User deleted.' });
+    // Cascade-delete all quiz attempts belonging to this user
+    await QuizAttempt.deleteMany({ userId: req.params.id });
+
+    return res.status(200).json({ success: true, message: 'User and all their quiz attempts deleted.' });
   } catch (err) {
     console.error('[deleteUser]', err);
     return res.status(500).json({ success: false, message: 'Server error.' });
@@ -125,6 +129,10 @@ export const deleteUser = async (req, res) => {
 export const changeUserRole = async (req, res) => {
   try {
     const { role, isAdmin } = req.body;
+
+    if (req.params.id === req.user.userId) {
+      return res.status(400).json({ success: false, message: 'You cannot change your own admin role.' });
+    }
 
     const validRoles = ['student', 'admin'];
     if (role && !validRoles.includes(role)) {

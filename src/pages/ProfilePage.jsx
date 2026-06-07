@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { doc, getDoc, collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
-import { db } from '../firebase/config';
+import { apiFetch } from '../api/client';
 import './ProfilePage.css';
 
 const ProfilePage = () => {
@@ -17,200 +16,65 @@ const ProfilePage = () => {
 
   useEffect(() => {
     if (user) {
-      fetchUserProfile();
-      fetchRecentAttempts();
-      fetchTopicProgress();
-      fetchAchievements();
+      loadProfile();
     }
   }, [user]);
 
-  const fetchUserProfile = async () => {
+  const loadProfile = async () => {
     try {
-      const userDoc = await getDoc(doc(db, 'users', user.uid));
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
-        
-        // Ensure stats object exists with defaults
+      // Fetch profile and reports in parallel
+      const [meData, reportsData] = await Promise.all([
+        apiFetch('/auth/me'),
+        apiFetch('/reports'),
+      ]);
+
+      if (meData.success) {
         const defaultStats = {
           totalQuizzesTaken: 0,
           totalTimeSpent: 0,
           totalXP: 0,
           level: 1,
           averageScore: 0,
-          perfectScores: 0
+          perfectScores: 0,
         };
-        
         setUserProfile({
-          ...userData,
-          stats: { ...defaultStats, ...(userData.stats || {}) }
+          ...meData.user,
+          stats: { ...defaultStats, ...(meData.user.stats || {}) },
         });
       }
-    } catch (error) {
-      console.error('Error fetching user profile:', error);
+
+      if (reportsData.success) {
+        // Reports are already sorted newest-first; take the 5 most recent
+        const recent = (reportsData.reports || []).slice(0, 5);
+        setRecentAttempts(recent);
+
+        // Derive topic progress from the fetched reports
+        const topicStats = {};
+        recent.forEach(attempt => {
+          if (attempt.topicBreakdown) {
+            Object.entries(attempt.topicBreakdown).forEach(([topic, stats]) => {
+              if (!topicStats[topic]) {
+                topicStats[topic] = { correct: 0, total: 0, attempts: 0 };
+              }
+              topicStats[topic].correct += stats.correct || 0;
+              topicStats[topic].total   += stats.total   || 0;
+              topicStats[topic].attempts += 1;
+            });
+          }
+        });
+        Object.keys(topicStats).forEach(topic => {
+          const s = topicStats[topic];
+          s.percentage = s.total > 0 ? Math.round((s.correct / s.total) * 100) : 0;
+          s.skillLevel = getSkillLevel(s.percentage);
+        });
+        setTopicProgress(topicStats);
+      }
+
+      // Achievements are stubbed as empty for now (per migration spec)
+      setAchievements([]);
+    } catch (err) {
+      console.error('Error loading profile:', err);
       setError('Failed to load profile data');
-    }
-  };
-
-  const fetchRecentAttempts = async () => {
-    try {
-      console.log('📊 Fetching recent attempts for user:', user.uid);
-      
-      // First, try to get ALL quiz-attempts for this user (without orderBy to avoid index issues)
-      const attemptsQuery = query(
-        collection(db, 'quiz-attempts'),
-        where('userId', '==', user.uid)
-      );
-      
-      const snapshot = await getDocs(attemptsQuery);
-      console.log('📊 Found', snapshot.size, 'quiz attempts in quiz-attempts collection');
-      
-      let attempts = snapshot.docs.map(doc => {
-        const data = doc.data();
-        console.log('📊 Quiz attempt data:', data);
-        return {
-          id: doc.id,
-          ...data
-        };
-      });
-      
-      // Sort manually and limit to 5
-      attempts = attempts
-        .sort((a, b) => {
-          const dateA = a.completedAt?.toDate ? a.completedAt.toDate() : new Date(a.completedAt);
-          const dateB = b.completedAt?.toDate ? b.completedAt.toDate() : new Date(b.completedAt);
-          return dateB - dateA;
-        })
-        .slice(0, 5);
-      
-      console.log('📊 Sorted recent attempts:', attempts);
-      setRecentAttempts(attempts);
-      
-    } catch (error) {
-      console.error('❌ Error fetching quiz-attempts:', error);
-      // Fallback to legacy reports collection
-      try {
-        console.log('📊 Trying legacy reports collection...');
-        
-        // Try without orderBy first to avoid index issues
-        const reportsQuery = query(
-          collection(db, 'reports'),
-          where('userId', '==', user.uid)
-        );
-        
-        const snapshot = await getDocs(reportsQuery);
-        console.log('📊 Found', snapshot.size, 'reports in legacy collection');
-        
-        let reports = snapshot.docs.map(doc => {
-          const data = doc.data();
-          console.log('📊 Report data:', data);
-          return {
-            id: doc.id,
-            quizTitle: data.quizTitle,
-            completedAt: data.submittedAt,
-            score: data.analysis?.totalScore || 0,
-            totalQuestions: data.analysis?.totalQuestions || 0,
-            percentage: data.analysis?.overallPercentage || 0,
-            isPerfectScore: (data.analysis?.overallPercentage || 0) === 100
-          };
-        });
-        
-        // Sort manually and limit to 5
-        reports = reports
-          .sort((a, b) => {
-            const dateA = a.completedAt?.toDate ? a.completedAt.toDate() : new Date(a.completedAt);
-            const dateB = b.completedAt?.toDate ? b.completedAt.toDate() : new Date(b.completedAt);
-            return dateB - dateA;
-          })
-          .slice(0, 5);
-        
-        console.log('📊 Sorted legacy reports:', reports);
-        setRecentAttempts(reports);
-        
-      } catch (legacyError) {
-        console.error('❌ Error fetching legacy reports:', legacyError);
-        setRecentAttempts([]); // Set empty array instead of leaving undefined
-      }
-    }
-  };
-
-  const fetchTopicProgress = async () => {
-    try {
-      // This would fetch from topic-progress collection in a real implementation
-      // For now, analyze recent attempts to show topic breakdown
-      const topicStats = {};
-      
-      recentAttempts.forEach(attempt => {
-        if (attempt.topicBreakdown) {
-          Object.entries(attempt.topicBreakdown).forEach(([topic, stats]) => {
-            if (!topicStats[topic]) {
-              topicStats[topic] = { correct: 0, total: 0, attempts: 0 };
-            }
-            topicStats[topic].correct += stats.correct;
-            topicStats[topic].total += stats.total;
-            topicStats[topic].attempts += 1;
-          });
-        }
-      });
-      
-      // Calculate percentages and skill levels
-      Object.keys(topicStats).forEach(topic => {
-        const stats = topicStats[topic];
-        stats.percentage = Math.round((stats.correct / stats.total) * 100);
-        stats.skillLevel = getSkillLevel(stats.percentage);
-      });
-      
-      setTopicProgress(topicStats);
-    } catch (error) {
-      console.error('Error calculating topic progress:', error);
-    }
-  };
-
-  const fetchAchievements = async () => {
-    try {
-      // This would fetch actual achievements in a real implementation
-      // For now, calculate some basic achievements based on user stats
-      const userStats = userProfile?.stats || {};
-      const calculatedAchievements = [];
-      
-      // First Quiz achievement
-      if (userStats.totalQuizzesTaken >= 1) {
-        calculatedAchievements.push({
-          id: 'first-quiz',
-          title: 'Getting Started',
-          description: 'Completed your first quiz',
-          icon: '🎯',
-          unlockedAt: new Date(),
-          tier: 'bronze'
-        });
-      }
-      
-      // Perfect Score achievement
-      if (userStats.perfectScores >= 1) {
-        calculatedAchievements.push({
-          id: 'perfect-score',
-          title: 'Perfectionist',
-          description: 'Achieved a perfect score',
-          icon: '🏆',
-          unlockedAt: new Date(),
-          tier: 'gold'
-        });
-      }
-      
-      // Quiz Master achievement
-      if (userStats.totalQuizzesTaken >= 10) {
-        calculatedAchievements.push({
-          id: 'quiz-master',
-          title: 'Quiz Master',
-          description: 'Completed 10 quizzes',
-          icon: '🧠',
-          unlockedAt: new Date(),
-          tier: 'silver'
-        });
-      }
-      
-      setAchievements(calculatedAchievements);
-    } catch (error) {
-      console.error('Error calculating achievements:', error);
     } finally {
       setLoading(false);
     }
@@ -223,15 +87,13 @@ const ProfilePage = () => {
     return 'Beginner';
   };
 
-  const formatDate = (timestamp) => {
-    if (!timestamp) return 'Unknown';
-    
-    // Handle Firestore timestamp
-    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-    return date.toLocaleDateString('en-US', {
+  const formatDate = (dateValue) => {
+    if (!dateValue) return 'Unknown';
+    // MERN backend returns ISO 8601 strings, not Firestore Timestamps
+    return new Date(dateValue).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
     });
   };
 
@@ -246,39 +108,39 @@ const ProfilePage = () => {
 
   if (loading) {
     return (
-      <div className="profile-page">
-        <div className="loading-container">
-          <div className="loading-spinner"></div>
-          <p>Loading your profile...</p>
+      <main className="profile-page page container">
+        <div className="loading-container card">
+          <div className="spinner"></div>
+          <p style={{ marginTop: 'var(--space-4)', color: 'var(--text-muted)' }}>Loading your profile...</p>
         </div>
-      </div>
+      </main>
     );
   }
 
   if (error) {
     return (
-      <div className="profile-page">
-        <div className="error-container">
-          <h3>Error Loading Profile</h3>
-          <p>{error}</p>
+      <main className="profile-page page container">
+        <div className="error-container card">
+          <h3 style={{ color: 'var(--danger)' }}>Error Loading Profile</h3>
+          <p style={{ color: 'var(--text-muted)' }}>{error}</p>
         </div>
-      </div>
+      </main>
     );
   }
 
   const stats = userProfile?.stats || {};
 
   return (
-    <div className="profile-page">
+    <main className="profile-page page container">
       {/* Back Button */}
       <div className="profile-header-nav">
-        <button className="back-button" onClick={() => navigate('/')}>
-          ← Back to Home
+        <button className="btn btn-secondary" onClick={() => navigate('/')}>
+          &larr; Back to Home
         </button>
       </div>
 
       {/* Profile Header */}
-      <div className="profile-header">
+      <div className="profile-header card">
         <div className="profile-avatar">
           {userProfile?.photoURL ? (
             <img src={userProfile.photoURL} alt="Profile" />
@@ -314,7 +176,7 @@ const ProfilePage = () => {
 
       {/* Stats Overview */}
       <div className="stats-grid">
-        <div className="stat-card">
+        <div className="stat-card-item card">
           <div className="stat-icon">🎯</div>
           <div className="stat-content">
             <h3>{stats.totalQuizzesTaken}</h3>
@@ -322,7 +184,7 @@ const ProfilePage = () => {
           </div>
         </div>
         
-        <div className="stat-card">
+        <div className="stat-card-item card">
           <div className="stat-icon">📊</div>
           <div className="stat-content">
             <h3>{stats.averageScore}%</h3>
@@ -330,7 +192,7 @@ const ProfilePage = () => {
           </div>
         </div>
         
-        <div className="stat-card">
+        <div className="stat-card-item card">
           <div className="stat-icon">⏱️</div>
           <div className="stat-content">
             <h3>{formatTime(stats.totalTimeSpent)}</h3>
@@ -338,7 +200,7 @@ const ProfilePage = () => {
           </div>
         </div>
         
-        <div className="stat-card">
+        <div className="stat-card-item card">
           <div className="stat-icon">🏆</div>
           <div className="stat-content">
             <h3>{stats.perfectScores}</h3>
@@ -348,12 +210,12 @@ const ProfilePage = () => {
       </div>
 
       {/* Recent Activity */}
-      <div className="section">
+      <div className="profile-section card">
         <h2>Recent Quiz Attempts</h2>
         {recentAttempts.length > 0 ? (
           <div className="recent-attempts">
             {recentAttempts.map((attempt) => (
-              <div key={attempt.id} className="attempt-card">
+              <div key={attempt.id} className="attempt-card card-elevated">
                 <div className="attempt-header">
                   <h4>{attempt.quizTitle}</h4>
                   <span className={`score ${attempt.isPerfectScore ? 'perfect' : ''}`}>
@@ -377,11 +239,11 @@ const ProfilePage = () => {
 
       {/* Topic Progress */}
       {Object.keys(topicProgress).length > 0 && (
-        <div className="section">
+        <div className="profile-section card">
           <h2>Topic Progress</h2>
           <div className="topic-grid">
             {Object.entries(topicProgress).map(([topic, progress]) => (
-              <div key={topic} className="topic-card">
+              <div key={topic} className="topic-card-item card-elevated">
                 <h4>{topic}</h4>
                 <div className="topic-stats">
                   <div className="topic-percentage">{progress.percentage}%</div>
@@ -402,11 +264,11 @@ const ProfilePage = () => {
 
       {/* Achievements */}
       {achievements.length > 0 && (
-        <div className="section">
+        <div className="profile-section card">
           <h2>Achievements</h2>
           <div className="achievements-grid">
             {achievements.map((achievement) => (
-              <div key={achievement.id} className={`achievement-card ${achievement.tier}`}>
+              <div key={achievement.id} className={`achievement-card card-elevated ${achievement.tier}`}>
                 <div className="achievement-icon">{achievement.icon}</div>
                 <div className="achievement-content">
                   <h4>{achievement.title}</h4>
@@ -420,7 +282,7 @@ const ProfilePage = () => {
           </div>
         </div>
       )}
-    </div>
+    </main>
   );
 };
 

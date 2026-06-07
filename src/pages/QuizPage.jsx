@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Quiz from '../components/Quiz';
 import QuizSelection from '../components/QuizSelection';
-import styles from './styles/QuizPage.module.css';
+import styles from './QuizPage.module.css';
 
 const QuizPage = () => {
   const navigate = useNavigate();

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { collection, getDocs } from 'firebase/firestore';
-import { db } from '../firebase/config';
+import { apiFetch } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import './QuizSelection.css';
 
@@ -19,20 +18,9 @@ const QuizSelection = ({ onQuizSelect, onBack }) => {
       setLoading(true);
       setError(null);
 
-      const quizzesSnapshot = await getDocs(collection(db, 'quizzes'));
-      const quizzesData = quizzesSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-
-      // Sort quizzes by creation date (newest first)
-      quizzesData.sort((a, b) => {
-        const dateA = a.createdAt ? new Date(a.createdAt) : new Date(0);
-        const dateB = b.createdAt ? new Date(b.createdAt) : new Date(0);
-        return dateB - dateA;
-      });
-
-      setQuizzes(quizzesData);
+      // Backend returns published quizzes sorted by createdAt desc with questionCount
+      const data = await apiFetch('/quizzes');
+      setQuizzes(data.quizzes || []);
     } catch (error) {
       console.error('Error fetching quizzes:', error);
       setError('Failed to load quizzes. Please try again.');
@@ -41,12 +29,23 @@ const QuizSelection = ({ onQuizSelect, onBack }) => {
     }
   };
 
-  const handleQuizSelect = (quiz) => {
-    if (!quiz.questions || quiz.questions.length === 0) {
+  const handleQuizSelect = async (quiz) => {
+    const qCount = quiz.questions?.length ?? quiz.questionCount ?? 0;
+    if (qCount === 0) {
       alert('This quiz has no questions. Please contact an administrator.');
       return;
     }
-    onQuizSelect(quiz);
+    
+    try {
+      setLoading(true);
+      const qid = quiz._id ?? quiz.id;
+      const { quiz: fullQuiz } = await apiFetch(`/quizzes/${qid}`);
+      onQuizSelect(fullQuiz);
+    } catch (err) {
+      setError(`Failed to load quiz questions: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (loading) {
@@ -67,13 +66,13 @@ const QuizSelection = ({ onQuizSelect, onBack }) => {
       <div className="quiz-selection-container">
         <div className="quiz-selection-header">
           <h2>Error Loading Quizzes</h2>
-          <button className="px-8 py-3 font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-all duration-200" onClick={onBack}>
+          <button className="btn-back-home" onClick={onBack}>
             ← Back to Home
           </button>
         </div>
         <div className="error-message">
           <p>{error}</p>
-          <button className="px-8 py-3 font-semibold text-white bg-red-600 border-2 border-red-600 rounded-lg hover:bg-red-700 hover:border-red-700 transition-all duration-200 mt-4" onClick={fetchQuizzes}>
+          <button className="retry-btn" onClick={fetchQuizzes}>
             Retry
           </button>
         </div>
@@ -85,7 +84,7 @@ const QuizSelection = ({ onQuizSelect, onBack }) => {
     <div className="quiz-selection-container">
       <div className="quiz-selection-header">
         <h2>Select a Quiz</h2>
-        <button className="px-8 py-3 font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-all duration-200" onClick={onBack}>
+        <button className="btn-back-home" onClick={onBack}>
           ← Back to Home
         </button>
       </div>
@@ -103,7 +102,7 @@ const QuizSelection = ({ onQuizSelect, onBack }) => {
                 <h3 className="quiz-title">{quiz.title}</h3>
                 <div className="quiz-meta">
                   <span className="question-count">
-                    {quiz.questions?.length || 0} questions
+                    {quiz.questions?.length ?? quiz.questionCount ?? 0} questions
                   </span>
                   {quiz.createdAt && (
                     <span className="quiz-date">
@@ -139,11 +138,11 @@ const QuizSelection = ({ onQuizSelect, onBack }) => {
               
               <div className="quiz-card-footer">
                 <button 
-                  className="w-full px-8 py-3 font-semibold text-white bg-indigo-600 border-2 border-indigo-600 rounded-lg hover:bg-indigo-700 hover:border-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                  className="select-quiz-btn"
                   onClick={() => handleQuizSelect(quiz)}
-                  disabled={!quiz.questions || quiz.questions.length === 0}
+                  disabled={(quiz.questions?.length ?? quiz.questionCount ?? 0) === 0}
                 >
-                  {!quiz.questions || quiz.questions.length === 0 
+                  {(quiz.questions?.length ?? quiz.questionCount ?? 0) === 0 
                     ? 'No Questions Available' 
                     : 'Start Quiz'
                   }

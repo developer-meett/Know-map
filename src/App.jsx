@@ -17,14 +17,7 @@ function App() {
       <Route path="/" element={<Layout />}>
         <Route index element={<HomePage />} />
         <Route path="login" element={<LoginPage />} />
-        <Route 
-          path="quiz" 
-          element={
-            <ProtectedRoute>
-              <QuizPage />
-            </ProtectedRoute>
-          } 
-        />
+        <Route path="quiz" element={<QuizPage />} />
         <Route 
           path="profile" 
           element={
@@ -33,22 +26,8 @@ function App() {
             </ProtectedRoute>
           } 
         />
-        <Route 
-          path="results" 
-          element={
-            <ProtectedRoute>
-              <ResultsPage />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="results/:reportId" 
-          element={
-            <ProtectedRoute>
-              <ResultsPage />
-            </ProtectedRoute>
-          } 
-        />
+        <Route path="results" element={<ResultsPage />} />
+        <Route path="results/:reportId" element={<ResultsPage />} />
         <Route 
           path="admin" 
           element={

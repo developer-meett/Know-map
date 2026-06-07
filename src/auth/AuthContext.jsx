@@ -1,16 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
-import { auth, db } from '../firebase/config';
-import {
-  onAuthStateChanged,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  signOut,
-  GoogleAuthProvider,
-  signInWithPopup,
-  RecaptchaVerifier,
-  signInWithPhoneNumber,
-} from 'firebase/auth';
-import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { apiFetch } from '../api/client';
 import { logger } from '../utils/logger';
 
 const AuthContext = createContext(null);
@@ -19,178 +8,170 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [initializing, setInitializing] = useState(true);
   
-  // Use refs instead of global variables to prevent memory leaks
-  const recaptchaVerifierRef = useRef(null);
-  const confirmationResultRef = useRef(null);
+  // Used to manually tie the promise from googleSignIn to the GSI callback
+  const googleResolverRef = useRef(null);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, async (u) => {
-      if (u) {
-        // User is signed in, ensure their document exists in Firestore
-        try {
-          await createUserDocument(u);
-        } catch (error) {
-          logger.error('Error creating user document during auth state change:', error);
-          // Don't fail the authentication if document creation fails
+    // 1. Restore Session (Replaces Firebase onAuthStateChanged)
+    const restoreSession = async () => {
+      try {
+        const data = await apiFetch('/auth/me');
+        if (data.success) {
+          setUser(data.user);
+        }
+      } catch (err) {
+        // Expected if no active cookie session exists; quietly fail
+        setUser(null);
+      } finally {
+        setInitializing(false);
+      }
+    };
+    restoreSession();
+
+    // 2. Load Google Identity Services (GSI) script dynamically
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    if (!clientId || clientId.includes('your_google_client_id_here')) {
+      logger.warn('GSI Script skipped: Valid VITE_GOOGLE_CLIENT_ID is missing from environment.');
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    script.onload = () => {
+      if (window.google) {
+        window.google.accounts.id.initialize({
+          client_id: clientId,
+          callback: handleGoogleCallback,
+          auto_select: false,       // Prevent prompt from appearing aggressively
+          cancel_on_tap_outside: false
+        });
+        
+        // Render a GSI button in our hidden container so we can synthetically click it
+        const hiddenContainer = document.getElementById('gsi-hidden-btn');
+        if (hiddenContainer) {
+          window.google.accounts.id.renderButton(hiddenContainer, {
+            theme: 'outline', size: 'large'
+          });
         }
       }
-      setUser(u);
-      setInitializing(false);
-    });
-    
-    // Cleanup function
+    };
+    document.head.appendChild(script);
+
     return () => {
-      unsub();
-      // Clean up reCAPTCHA verifier on unmount
-      if (recaptchaVerifierRef.current) {
-        try {
-          recaptchaVerifierRef.current.clear();
-        } catch (e) {
-          logger.warn('Error clearing reCAPTCHA verifier:', e);
-        }
-        recaptchaVerifierRef.current = null;
+      if (document.head.contains(script)) {
+        document.head.removeChild(script);
       }
     };
   }, []);
 
+  // Central GSI callback triggered after a successful Google Popup login
+  const handleGoogleCallback = async (response) => {
+    try {
+      if (response.credential) { // This is the Google ID Token
+        const data = await apiFetch('/auth/google', {
+          method: 'POST',
+          body: JSON.stringify({ idToken: response.credential })
+        });
+        setUser(data.user);
+        if (googleResolverRef.current) {
+          googleResolverRef.current.resolve(data.user);
+        }
+      } else {
+        throw new Error('No credential idToken returned from Google');
+      }
+    } catch (err) {
+      logger.error('Backend Google Auth validation failed', err);
+      if (googleResolverRef.current) {
+        googleResolverRef.current.reject(err);
+      }
+    } finally {
+      googleResolverRef.current = null;
+    }
+  };
+
   const login = async (email, password) => {
     try {
-      const result = await signInWithEmailAndPassword(auth, email, password);
-      // User document will be created/updated in the onAuthStateChanged listener
-      return result;
+      const data = await apiFetch('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password })
+      });
+      setUser(data.user);
+      return data;
     } catch (error) {
       logger.error('Login failed:', error);
       throw error;
     }
   };
   
-  const signup = async (email, password) => {
+  const signup = async (email, password, displayName) => {
     try {
-      const result = await createUserWithEmailAndPassword(auth, email, password);
-      // Create user document in Firestore
-      await createUserDocument(result.user);
-      return result;
+      const data = await apiFetch('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({ email, password, displayName })
+      });
+      setUser(data.user);
+      return data;
     } catch (error) {
       logger.error('Signup failed:', error);
       throw error;
     }
   };
   
-  const logout = () => signOut(auth);
-
-  // Create user document in Firestore
-  const createUserDocument = async (user) => {
+  const logout = async () => {
     try {
-      const userRef = doc(db, 'users', user.uid);
+      await apiFetch('/auth/logout', { method: 'POST' });
+    } catch (error) {
+      logger.error('Logout failed:', error);
+    } finally {
+      // Hard reset local state regardless of server outcome
+      setUser(null);
+    }
+  };
+
+  const googleSignIn = () => {
+    return new Promise((resolve, reject) => {
+      googleResolverRef.current = { resolve, reject };
       
-      // Check if document exists first
-      const userDoc = await getDoc(userRef);
-      const userData = {
-        uid: user.uid,
-        email: user.email,
-        displayName: user.displayName || user.email?.split('@')[0] || 'User',
-        isAdmin: false, // Default to false
-        role: 'student', // Default role
-        lastLoginAt: serverTimestamp(),
-      };
-      
-      if (!userDoc.exists()) {
-        // New user - set createdAt
-        userData.createdAt = serverTimestamp();
-        await setDoc(userRef, userData);
-        logger.debug('New user document created:', user.uid);
+      const hiddenBtn = document.getElementById('gsi-hidden-btn');
+      if (hiddenBtn) {
+        // GSI wraps its UI inside a specific div with role="button"
+        // Triggering this ensures the popup occurs via a valid user interaction map
+        const nativeBtn = hiddenBtn.querySelector('div[role="button"]');
+        if (nativeBtn) {
+          nativeBtn.click();
+        } else {
+          reject(new Error("Google framework is still securely initializing. Please try again in 1 second."));
+          googleResolverRef.current = null;
+        }
       } else {
-        // Existing user - just update login time and ensure required fields
-        await setDoc(userRef, userData, { merge: true });
-        logger.debug('User document updated:', user.uid);
+        reject(new Error("Google Auth mount point is missing from the DOM."));
+        googleResolverRef.current = null;
       }
-    } catch (error) {
-      logger.error('Error creating user document:', error);
-      // Don't throw error to prevent authentication state issues
-    }
+    });
   };
 
-  // Google Sign-In
-  const googleSignIn = async () => {
-    try {
-      const provider = new GoogleAuthProvider();
-      // Optional: prompt account selection each time
-      provider.setCustomParameters({ prompt: 'select_account' });
-      const result = await signInWithPopup(auth, provider);
-      // Create user document for Google sign-in users too
-      await createUserDocument(result.user);
-      return result;
-    } catch (error) {
-      logger.error('Google sign-in failed:', error);
-      throw error;
-    }
+  const sendPhoneOtp = async () => {
+    throw new Error('Phone auth not yet implemented in MERN version');
   };
 
-  // Phone auth (OTP)
-  const ensureRecaptcha = (containerId = 'recaptcha-container', size = 'invisible') => {
-    try {
-      // Clear any existing verifier
-      if (recaptchaVerifierRef.current) {
-        try {
-          recaptchaVerifierRef.current.clear();
-        } catch (e) {
-          logger.warn('Error clearing existing reCAPTCHA verifier:', e);
-        }
-      }
-      
-      // Ensure the container exists
-      const container = document.getElementById(containerId);
-      if (!container) {
-        throw new Error(`reCAPTCHA container '${containerId}' not found`);
-      }
-      
-      recaptchaVerifierRef.current = new RecaptchaVerifier(auth, containerId, { 
-        size,
-        callback: () => {
-          logger.debug('reCAPTCHA solved');
-        },
-        'expired-callback': () => {
-          logger.warn('reCAPTCHA expired');
-        }
-      });
-      return recaptchaVerifierRef.current;
-    } catch (error) {
-      logger.error('Error setting up reCAPTCHA:', error);
-      throw error;
-    }
-  };
-
-  const sendPhoneOtp = async (phoneNumber, containerId = 'recaptcha-container') => {
-    try {
-      const verifier = ensureRecaptcha(containerId, 'invisible');
-      const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, verifier);
-      confirmationResultRef.current = confirmationResult;
-      return confirmationResult;
-    } catch (error) {
-      logger.error('Error sending phone OTP:', error);
-      throw error;
-    }
-  };
-
-  const verifyPhoneOtp = async (code) => {
-    try {
-      if (!confirmationResultRef.current) {
-        throw new Error('No OTP session found. Please request a new code.');
-      }
-      const result = await confirmationResultRef.current.confirm(code);
-      // Create user document for phone auth users too
-      await createUserDocument(result.user);
-      // Clear the confirmation result after successful verification
-      confirmationResultRef.current = null;
-      return result;
-    } catch (error) {
-      logger.error('Error verifying phone OTP:', error);
-      throw error;
-    }
+  const verifyPhoneOtp = async () => {
+    throw new Error('Phone auth not yet implemented in MERN version');
   };
 
   const value = { user, initializing, login, signup, logout, googleSignIn, sendPhoneOtp, verifyPhoneOtp };
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+
+  return (
+    <AuthContext.Provider value={value}>
+      {/* 
+        This is purposefully rendered offscreen securely to trick GSI into 
+        allowing seamless programmatic clicks from our own custom styled button.
+      */}
+      <div id="gsi-hidden-btn" style={{ display: 'none', position: 'absolute', visibility: 'hidden' }}></div>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {

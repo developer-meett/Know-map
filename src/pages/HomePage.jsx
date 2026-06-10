@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BookOpen, BarChart2, TrendingUp, Sparkles, CheckCircle } from 'lucide-react';
+import { useAuth } from '../auth/AuthContext';
 import './HomePage.css';
 
 const STATS = [
@@ -38,6 +39,7 @@ const PERKS = [
 
 const HomePage = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -84,8 +86,8 @@ const HomePage = () => {
           <button className="btn btn-primary btn-xl hero-btn" onClick={() => navigate('/quiz')}>
             Start Diagnostic Quiz 
           </button>
-          <button className="btn btn-secondary btn-lg" onClick={() => navigate('/login')}>
-            View My Profile
+          <button className="btn btn-secondary btn-lg" onClick={() => navigate(user ? '/profile' : '/login')}>
+            {user ? 'View My Profile' : 'Sign In'}
           </button>
         </div>
 

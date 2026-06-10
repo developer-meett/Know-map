@@ -29,7 +29,12 @@ app.use(cookieParser());
 
 // ─── Routes ──────────────────────────────────────────────────────────────────
 
-// Health check
+// Docker Health Check
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'OK' });
+});
+
+// API Health check
 app.get('/api/health', (_req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });

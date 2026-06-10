@@ -141,13 +141,49 @@ All Firebase configuration is handled through environment variables in `.env.loc
 - ESLint (code quality)
 - Vite (build tool)
 
-##  Deployment
+##  Docker Deployment (Recommended)
 
-Ready for deployment to:
-- **Firebase Hosting**: `npm run build && firebase deploy`
-- **Vercel**: Connect GitHub repository
-- **Netlify**: Deploy build folder
-- **Any static hosting**: Use `dist/` folder after `npm run build`
+The easiest way to run the full stack (Frontend, Backend, and MongoDB) locally or in production is using Docker Compose.
+
+### **Build and Run**
+```bash
+docker compose up --build
+```
+
+### **Stop Containers**
+```bash
+docker compose down
+```
+
+### **View Logs**
+```bash
+docker compose logs -f
+```
+
+### **Environment Setup for Docker**
+Create a `.env` file in the root directory with the following variables before running `docker compose up`:
+```env
+# Server Config
+PORT=5001
+NODE_ENV=production
+
+# MongoDB (Use the local container for development)
+MONGO_URI=mongodb://mongodb:27017/knowmap
+
+# JWT Secret
+JWT_SECRET=your_super_secret_jwt_key
+JWT_EXPIRES_IN=7d
+
+# Google OAuth
+GOOGLE_CLIENT_ID=your_google_client_id
+VITE_GOOGLE_CLIENT_ID=your_google_client_id
+```
+
+##  Alternative Deployment
+
+Ready for manual deployment to:
+- **Firebase Hosting / Vercel / Netlify**: Deploy the `dist/` folder after `npm run build`
+- **Backend (Render / Heroku)**: Push the `server/` directory and set `NODE_ENV=production`
 
 ##  Browser Support
 
@@ -157,4 +193,4 @@ Ready for deployment to:
 
 ---
 
-**Built with ❤️ using React, Firebase, and modern web technologies**
+**Built with ❤️ using React, Express, MongoDB, and Docker**

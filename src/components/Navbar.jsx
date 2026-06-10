@@ -1,12 +1,12 @@
 import React from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { useNavigate, useLocation, NavLink } from 'react-router-dom';
-
+import logo from "../assets/logo.png";
 const Navbar = () => {
   const { user, logout } = useAuth();
-  const navigate  = useNavigate();
-  const location  = useLocation();
-  const isAdmin   = !!user?.isAdmin;
+  const navigate = useNavigate();
+  const location = useLocation();
+  const isAdmin = !!user?.isAdmin;
 
   // User avatar initials
   const initials = user?.displayName
@@ -20,8 +20,7 @@ const Navbar = () => {
         {/* Logo */}
         <div className="logo" onClick={() => navigate('/')} role="link" tabIndex={0}
           onKeyDown={e => e.key === 'Enter' && navigate('/')}>
-          <div className="logoIcon">KM</div>
-          <span>KnowMap</span>
+          <img src={logo} alt="KnowMap Logo" className="logoImage" />
         </div>
 
         {/* Right side */}
@@ -80,6 +79,13 @@ const Navbar = () => {
       </nav>
 
       <style>{`
+        .logoImage {
+          height: 190px;
+          width: auto;
+          object-fit: contain;
+          object-position: left center;
+          margin-left: -200px;
+        }
         .logo-dot {
           font-size: 1.4rem;
           color: var(--accent);

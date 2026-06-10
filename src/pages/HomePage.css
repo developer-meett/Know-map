@@ -63,7 +63,7 @@
 }
 
 .hero-gradient {
-  background: linear-gradient(120deg, var(--accent) 0%, var(--secondary) 100%);
+  background: var(--accent);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -127,7 +127,7 @@
   font-family:  var(--font-heading);
   font-size:    var(--text-3xl);
   font-weight:  var(--font-extrabold);
-  background:   linear-gradient(120deg, var(--accent), var(--secondary));
+  background:   var(--accent);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

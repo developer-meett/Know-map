@@ -3,13 +3,23 @@ import QuizAttempt from '../models/QuizAttempt.js';
 import UserTopicProgress from '../models/UserTopicProgress.js';
 import UserQuestionHistory from '../models/UserQuestionHistory.js';
 
+function shuffleArray(array) {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
 export async function generateQuizForUser(userId, quizId, targetQuestionCount = 15) {
   const quiz = await Quiz.findById(quizId).lean();
   if (!quiz || !quiz.questions || quiz.questions.length === 0) {
     throw new Error('Quiz not found or has no questions.');
   }
 
-  const allQuestions = [...quiz.questions];
+  // Shuffle the questions right away so that picking is always randomized
+  let allQuestions = shuffleArray(quiz.questions);
 
   const previousAttempts = await QuizAttempt.countDocuments({ userId, quizId });
   const isFirstAttempt = previousAttempts === 0;
@@ -33,7 +43,6 @@ export async function generateQuizForUser(userId, quizId, targetQuestionCount = 
   });
 
   if (isFirstAttempt || allQuestions.length <= targetQuestionCount) {
-    allQuestions.sort(() => Math.random() - 0.5);
     allQuestions.sort((a, b) => a._priority - b._priority);
     const selected = allQuestions.slice(0, targetQuestionCount);
     return cleanAndShuffleQuestions(selected);
@@ -104,7 +113,7 @@ export async function generateQuizForUser(userId, quizId, targetQuestionCount = 
 }
 
 export function cleanAndShuffleQuestions(questions) {
-  return questions.map(q => {
+  const cleaned = questions.map(q => {
     const cleanQ = { ...q };
     delete cleanQ._priority;
     delete cleanQ._topicCategory;
@@ -114,5 +123,6 @@ export function cleanAndShuffleQuestions(questions) {
     // because the backend analyzer expects the answer index to match the DB array index.
     
     return cleanQ;
-  }).sort(() => Math.random() - 0.5);
+  });
+  return shuffleArray(cleaned);
 }

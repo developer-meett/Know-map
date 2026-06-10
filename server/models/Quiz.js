@@ -11,6 +11,9 @@ const questionSchema = new Schema(
     options:     { type: [String], required: true },       // exactly 4 option strings
     correct:     { type: Number, required: true },          // index 0-3
     topic:       { type: String, required: true },
+    subtopic:    { type: String, default: 'General' },
+    difficulty:  { type: String, enum: ['easy', 'medium', 'hard'], default: 'medium' },
+    weight:      { type: Number, default: 2 },
     explanation: { type: String, default: null },
   },
   { _id: false }

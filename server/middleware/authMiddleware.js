@@ -45,3 +45,20 @@ export const adminOnly = (req, res, next) => {
   }
   next();
 };
+
+export const optionalAuth = (req, res, next) => {
+  try {
+    let token = req.cookies?.token;
+    if (!token) {
+      const authHeader = req.headers.authorization;
+      if (authHeader?.startsWith('Bearer ')) {
+        token = authHeader.slice(7);
+      }
+    }
+    if (token) {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      req.user = { userId: decoded.userId, isAdmin: decoded.isAdmin };
+    }
+  } catch (err) {}
+  next();
+};

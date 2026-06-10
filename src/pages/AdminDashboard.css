@@ -129,6 +129,7 @@
 .admin-tabs button:hover {
   background-color: var(--bg-surface);
   color: var(--text-primary);
+  border-radius: 15px;
 }
 
 .admin-tabs button:hover::before {
@@ -137,12 +138,14 @@
 
 .admin-tabs button.active {
   background-color: var(--accent);
+  border-radius: 15px;
   color: white;
   box-shadow: 0 -2px 10px rgba(13, 148, 136, 0.2);
 }
 
 .admin-tabs button.active:hover {
   background-color: var(--accent-hover);
+  border-radius: 15px;
   transform: translateY(-1px);
 }
 
@@ -151,6 +154,11 @@
   padding: var(--space-10);
   color: var(--text-muted);
   font-size: var(--text-lg);
+}
+
+.admin-tab-body {
+  width: 100%;
+  min-width: 0;
 }
 
 .admin-section {
@@ -608,6 +616,7 @@
 
 .import-actions {
   display: flex;
+  border: 1px solid var(--border-light);
   gap: var(--space-3);
   margin-top: var(--space-4);
 }

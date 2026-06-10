@@ -370,8 +370,8 @@ const AdminDashboard = () => {
 
   const downloadTemplate = () => {
     const link = document.createElement('a');
-    link.href = '/sample-quiz-template.json';
-    link.download = 'quiz-template.json';
+    link.href = '/test-import.json';
+    link.download = 'test-import.json';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -404,62 +404,64 @@ const AdminDashboard = () => {
         </button>
       </div>
 
+      <div className="admin-tab-body">
+
       {/* ── Users Tab ── */}
-      {activeTab === 'users' && (
-        <div className="admin-section">
-          <div className="section-header">
-            <h2>User Management</h2>
-            <button className="refresh-button" onClick={fetchData} disabled={loading} title="Refresh">
-              <RefreshCw className={`refresh-icon ${loading ? 'icon-spin' : ''}`} size={16} />
-              Refresh
-            </button>
+        {activeTab === 'users' && (
+          <div className="admin-section">
+            <div className="section-header">
+              <h2>User Management</h2>
+              <button className="refresh-button" onClick={fetchData} disabled={loading} title="Refresh">
+                <RefreshCw className={`refresh-icon ${loading ? 'icon-spin' : ''}`} size={16} />
+                Refresh
+              </button>
+            </div>
+            <div className="table-container">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Email</th>
+                    <th>Display Name</th>
+                    <th>Role</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {users.map((userData) => {
+                    const uid = userData._id ?? userData.id;
+                    return (
+                      <tr key={uid}>
+                        <td>{userData.email}</td>
+                        <td>{userData.displayName || 'N/A'}</td>
+                        <td>
+                          <span className={isUserAdmin(userData) ? 'admin-badge' : 'user-badge'}>
+                            {isUserAdmin(userData) ? 'Admin' : 'User'}
+                          </span>
+                        </td>
+                        <td>{formatDate(userData.createdAt)}</td>
+                        <td className="actions">
+                          <button
+                            onClick={() => handleToggleAdmin(uid, isUserAdmin(userData))}
+                            className="btn btn-sm btn-outline-primary"
+                          >
+                            {isUserAdmin(userData) ? 'Remove Admin' : 'Make Admin'}
+                          </button>
+                          <button
+                            onClick={() => handleDeleteUser(uid)}
+                            className="btn btn-sm btn-danger"
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
-          <div className="table-container">
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>Email</th>
-                  <th>Display Name</th>
-                  <th>Role</th>
-                  <th>Created</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((userData) => {
-                  const uid = userData._id ?? userData.id;
-                  return (
-                    <tr key={uid}>
-                      <td>{userData.email}</td>
-                      <td>{userData.displayName || 'N/A'}</td>
-                      <td>
-                        <span className={isUserAdmin(userData) ? 'admin-badge' : 'user-badge'}>
-                          {isUserAdmin(userData) ? 'Admin' : 'User'}
-                        </span>
-                      </td>
-                      <td>{formatDate(userData.createdAt)}</td>
-                      <td className="actions">
-                        <button
-                          onClick={() => handleToggleAdmin(uid, isUserAdmin(userData))}
-                          className="btn btn-sm btn-outline-primary"
-                        >
-                          {isUserAdmin(userData) ? 'Remove Admin' : 'Make Admin'}
-                        </button>
-                        <button
-                          onClick={() => handleDeleteUser(uid)}
-                          className="btn btn-sm btn-danger"
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+        )}
 
       {/* ── Quizzes Tab ── */}
       {activeTab === 'quizzes' && (
@@ -484,7 +486,7 @@ const AdminDashboard = () => {
 
               <div className="upload-actions">
                 <button className="btn btn-outline btn-sm" onClick={downloadTemplate}>
-                  📥 Download Template
+                   Download Template
                 </button>
               </div>
 
@@ -495,7 +497,7 @@ const AdminDashboard = () => {
                 onDrop={handleDrop}
               >
                 <div className="upload-content">
-                  <div className="upload-icon">📄</div>
+                  <div className="upload-icon"></div>
                   <p>Drag and drop your JSON file here, or</p>
                   <input
                     type="file"
@@ -535,14 +537,14 @@ const AdminDashboard = () => {
 
                   {validationResult.errors.length > 0 && (
                     <div className="validation-errors">
-                      <h5>❌ Errors ({validationResult.errors.length}):</h5>
+                      <h5> Errors ({validationResult.errors.length}):</h5>
                       <ul>{validationResult.errors.map((e, i) => <li key={i} className="error-item">{e}</li>)}</ul>
                     </div>
                   )}
 
                   {validationResult.warnings.length > 0 && (
                     <div className="validation-warnings">
-                      <h5>⚠️ Warnings ({validationResult.warnings.length}):</h5>
+                      <h5>️ Warnings ({validationResult.warnings.length}):</h5>
                       <ul>{validationResult.warnings.map((w, i) => <li key={i} className="warning-item">{w}</li>)}</ul>
                     </div>
                   )}
@@ -602,7 +604,9 @@ const AdminDashboard = () => {
             </table>
           </div>
         </div>
-      )}
+        )}
+
+      </div>{/* end admin-tab-body */}
 
       {/* ── Quiz Modal ── */}
       {showQuizModal && (

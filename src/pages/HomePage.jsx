@@ -82,7 +82,7 @@ const HomePage = () => {
         {/* CTA */}
         <div className="hero-cta">
           <button className="btn btn-primary btn-xl hero-btn" onClick={() => navigate('/quiz')}>
-            Start Diagnostic Quiz →
+            Start Diagnostic Quiz 
           </button>
           <button className="btn btn-secondary btn-lg" onClick={() => navigate('/login')}>
             View My Profile

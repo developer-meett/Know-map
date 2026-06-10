@@ -10,6 +10,8 @@ const ProfilePage = () => {
   const [userProfile, setUserProfile] = useState(null);
   const [recentAttempts, setRecentAttempts] = useState([]);
   const [topicProgress, setTopicProgress] = useState({});
+  const [trends, setTrends] = useState({});
+  const [roadmap, setRoadmap] = useState({ readyFor: [], learnNext: [], notReadyFor: [] });
   const [achievements, setAchievements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -23,9 +25,11 @@ const ProfilePage = () => {
   const loadProfile = async () => {
     try {
       // Fetch profile and reports in parallel
-      const [meData, reportsData] = await Promise.all([
+      const [meData, reportsData, trendsData, roadmapData] = await Promise.all([
         apiFetch('/auth/me'),
         apiFetch('/reports'),
+        apiFetch('/reports/trends').catch(() => null),
+        apiFetch('/reports/roadmap').catch(() => null),
       ]);
 
       if (meData.success) {
@@ -69,6 +73,9 @@ const ProfilePage = () => {
         });
         setTopicProgress(topicStats);
       }
+
+      if (trendsData?.success) setTrends(trendsData.trends);
+      if (roadmapData?.success) setRoadmap(roadmapData.roadmap);
 
       // Achievements are stubbed as empty for now (per migration spec)
       setAchievements([]);
@@ -177,7 +184,7 @@ const ProfilePage = () => {
       {/* Stats Overview */}
       <div className="stats-grid">
         <div className="stat-card-item card">
-          <div className="stat-icon">🎯</div>
+          <div className="stat-icon"></div>
           <div className="stat-content">
             <h3>{stats.totalQuizzesTaken}</h3>
             <p>Quizzes Completed</p>
@@ -185,7 +192,7 @@ const ProfilePage = () => {
         </div>
         
         <div className="stat-card-item card">
-          <div className="stat-icon">📊</div>
+          <div className="stat-icon"></div>
           <div className="stat-content">
             <h3>{stats.averageScore}%</h3>
             <p>Average Score</p>
@@ -193,7 +200,7 @@ const ProfilePage = () => {
         </div>
         
         <div className="stat-card-item card">
-          <div className="stat-icon">⏱️</div>
+          <div className="stat-icon"></div>
           <div className="stat-content">
             <h3>{formatTime(stats.totalTimeSpent)}</h3>
             <p>Time Spent</p>
@@ -201,7 +208,7 @@ const ProfilePage = () => {
         </div>
         
         <div className="stat-card-item card">
-          <div className="stat-icon">🏆</div>
+          <div className="stat-icon"></div>
           <div className="stat-content">
             <h3>{stats.perfectScores}</h3>
             <p>Perfect Scores</p>
@@ -209,79 +216,116 @@ const ProfilePage = () => {
         </div>
       </div>
 
-      {/* Recent Activity */}
-      <div className="profile-section card">
-        <h2>Recent Quiz Attempts</h2>
-        {recentAttempts.length > 0 ? (
-          <div className="recent-attempts">
-            {recentAttempts.map((attempt) => (
-              <div key={attempt.id} className="attempt-card card-elevated">
-                <div className="attempt-header">
-                  <h4>{attempt.quizTitle}</h4>
-                  <span className={`score ${attempt.isPerfectScore ? 'perfect' : ''}`}>
-                    {attempt.score}/{attempt.totalQuestions}
-                  </span>
-                </div>
-                <div className="attempt-details">
-                  <span className="percentage">{attempt.percentage}%</span>
-                  <span className="date">{formatDate(attempt.completedAt)}</span>
-                  {attempt.isPerfectScore && <span className="perfect-badge">Perfect!</span>}
-                </div>
+      <div className="analytics-dashboard">
+        <div className="dashboard-left">
+          {/* Recent Activity */}
+          <div className="profile-section card">
+            <h2>Recent Quiz Attempts</h2>
+            {recentAttempts.length > 0 ? (
+              <div className="recent-attempts">
+                {recentAttempts.map((attempt) => (
+                  <div key={attempt._id} className="attempt-card card-elevated">
+                    <div className="attempt-header">
+                      <h4>{attempt.quizId?.title || 'Unknown Quiz'}</h4>
+                      <span className={`score ${attempt.isPerfectScore ? 'perfect' : ''}`}>
+                        {attempt.score}/{attempt.totalQuestions}
+                      </span>
+                    </div>
+                    <div className="attempt-details">
+                      <span className="percentage">{attempt.percentage}%</span>
+                      <span className="date">{formatDate(attempt.completedAt)}</span>
+                      {attempt.isPerfectScore && <span className="perfect-badge">Perfect!</span>}
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
+            ) : (
+              <div className="empty-state">
+                <p>No quiz attempts yet. Take your first quiz to see your progress here!</p>
+              </div>
+            )}
           </div>
-        ) : (
-          <div className="empty-state">
-            <p>No quiz attempts yet. Take your first quiz to see your progress here!</p>
-          </div>
-        )}
+
+        </div>
+
+        <div className="dashboard-right">
+          {/* Topic Progress */}
+          {Object.keys(topicProgress).length > 0 && (
+            <div className="profile-section card">
+              <h2>Topic Progress</h2>
+              <div className="topic-grid">
+                {Object.entries(topicProgress).map(([topic, progress]) => (
+                  <div key={topic} className="topic-card-item card-elevated">
+                    <h4>{topic}</h4>
+                    <div className="topic-stats">
+                      <div className="topic-percentage">{progress.percentage}%</div>
+                      <div className="topic-skill-level">{progress.skillLevel}</div>
+                    </div>
+                    <div className="topic-progress-bar">
+                      <div 
+                        className="topic-progress-fill"
+                        style={{ width: `${progress.percentage}%` }}
+                      ></div>
+                    </div>
+                    <p className="topic-attempts">{progress.attempts} attempts</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Learning Roadmap */}
+          {(roadmap.readyFor.length > 0 || roadmap.learnNext.length > 0) && (
+            <div className="profile-section card">
+              <h2>Learning Roadmap</h2>
+              
+              {roadmap.readyFor.length > 0 && (
+                <div className="roadmap-section">
+                  <h4 style={{ color: 'var(--success)' }}>Ready For:</h4>
+                  <ul>{roadmap.readyFor.map((r, i) => <li key={i}>{r}</li>)}</ul>
+                </div>
+              )}
+
+              {roadmap.learnNext.length > 0 && (
+                <div className="roadmap-section" style={{ marginTop: '1rem' }}>
+                  <h4 style={{ color: 'var(--warning)' }}>Learn Next:</h4>
+                  <ul style={{ listStyleType: 'decimal', paddingLeft: '1.5rem' }}>
+                    {roadmap.learnNext.map((r, i) => <li key={i}>{r}</li>)}
+                  </ul>
+                </div>
+              )}
+
+              {roadmap.notReadyFor.length > 0 && (
+                <div className="roadmap-section" style={{ marginTop: '1rem' }}>
+                  <h4 style={{ color: 'var(--danger)' }}>Not Ready For:</h4>
+                  <ul style={{ color: 'var(--text-muted)' }}>{roadmap.notReadyFor.map((r, i) => <li key={i}>{r}</li>)}</ul>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Achievements */}
+          {achievements.length > 0 && (
+            <div className="profile-section card">
+              <h2>Achievements</h2>
+              <div className="achievements-grid">
+                {achievements.map((achievement) => (
+                  <div key={achievement.id} className={`achievement-card card-elevated ${achievement.tier}`}>
+                    <div className="achievement-icon">{achievement.icon}</div>
+                    <div className="achievement-content">
+                      <h4>{achievement.title}</h4>
+                      <p>{achievement.description}</p>
+                      <span className="achievement-date">
+                        Unlocked {formatDate(achievement.unlockedAt)}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
-
-      {/* Topic Progress */}
-      {Object.keys(topicProgress).length > 0 && (
-        <div className="profile-section card">
-          <h2>Topic Progress</h2>
-          <div className="topic-grid">
-            {Object.entries(topicProgress).map(([topic, progress]) => (
-              <div key={topic} className="topic-card-item card-elevated">
-                <h4>{topic}</h4>
-                <div className="topic-stats">
-                  <div className="topic-percentage">{progress.percentage}%</div>
-                  <div className="topic-skill-level">{progress.skillLevel}</div>
-                </div>
-                <div className="topic-progress-bar">
-                  <div 
-                    className="topic-progress-fill"
-                    style={{ width: `${progress.percentage}%` }}
-                  ></div>
-                </div>
-                <p className="topic-attempts">{progress.attempts} attempts</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Achievements */}
-      {achievements.length > 0 && (
-        <div className="profile-section card">
-          <h2>Achievements</h2>
-          <div className="achievements-grid">
-            {achievements.map((achievement) => (
-              <div key={achievement.id} className={`achievement-card card-elevated ${achievement.tier}`}>
-                <div className="achievement-icon">{achievement.icon}</div>
-                <div className="achievement-content">
-                  <h4>{achievement.title}</h4>
-                  <p>{achievement.description}</p>
-                  <span className="achievement-date">
-                    Unlocked {formatDate(achievement.unlockedAt)}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </main>
   );
 };

@@ -1,5 +1,5 @@
 /* ========================================================================= */
-/* 🎯 STANDARDIZED BUTTON SYSTEM - Modern Design System                     */
+/*  STANDARDIZED BUTTON SYSTEM - Modern Design System                     */
 /* ========================================================================= */
 
 /* Base Button Styles */
@@ -38,9 +38,10 @@
 
 /* Button Sizes */
 .btn-sm {
-  padding: var(--spacing-xs) var(--spacing-md);
-  font-size: var(--font-size-sm);
-  min-height: 36px;
+  padding: calc(var(--spacing-xs) + 2px) var(--spacing-lg);
+  font-size: var(--font-size-base);
+  min-height: 40px;
+  margin: var(--spacing-xs);
 }
 
 .btn-lg {

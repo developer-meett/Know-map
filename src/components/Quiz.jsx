@@ -61,10 +61,12 @@ export default function Quiz({ items, onComplete, quizData, onBack }) {
     setSubmitting(true);
     setError('');
 
-    // Build answers object: { "0": 2, "1": -1, ... }
+    // Build answers object keyed by question ID
     const answersObject = {};
     finalAnswers.forEach((answerIndex, questionIndex) => {
-      answersObject[questionIndex.toString()] = parseInt(answerIndex, 10);
+      const qObj = qs[questionIndex];
+      const qid = qObj.id || qObj._id || questionIndex.toString();
+      answersObject[qid] = parseInt(answerIndex, 10);
     });
 
     const totalTimeSpent = Math.round((Date.now() - quizStartTime.current) / 1000);

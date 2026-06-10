@@ -2,7 +2,10 @@ import mongoose from 'mongoose';
 import Quiz from '../models/Quiz.js';
 import QuizAttempt from '../models/QuizAttempt.js';
 import User from '../models/User.js';
+import UserTopicProgress from '../models/UserTopicProgress.js';
+import UserQuestionHistory from '../models/UserQuestionHistory.js';
 import { analyzeQuizPerformance } from '../utils/quizAnalyzer.js';
+import { generateQuizForUser, cleanAndShuffleQuestions } from '../utils/quizGenerator.js';
 
 // ─── getQuizzes ───────────────────────────────────────────────────────────────
 /**
@@ -43,10 +46,18 @@ export const getQuizById = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid quiz ID format.' });
     }
 
-    const quiz = await Quiz.findOne({ _id: req.params.id }).lean();
+    let quiz = await Quiz.findOne({ _id: req.params.id }).lean();
 
     if (!quiz) {
       return res.status(404).json({ success: false, message: 'Quiz not found.' });
+    }
+
+    if (req.user && req.user.userId) {
+      quiz.questions = await generateQuizForUser(req.user.userId, quiz._id, 5);
+    } else {
+      let questions = [...quiz.questions];
+      questions.sort(() => Math.random() - 0.5);
+      quiz.questions = cleanAndShuffleQuestions(questions.slice(0, 5));
     }
 
     return res.status(200).json({ success: true, quiz });
@@ -168,8 +179,42 @@ export const submitQuiz = async (req, res) => {
       return res.status(400).json({ success: false, message: 'answers object is required and must not be empty.' });
     }
 
-    // 5. Run analysis using the ported quizAnalyzer utility
-    const analysis = analyzeQuizPerformance(answers, quiz.questions);
+    // Ensure all DB questions have an ID so filtering works for legacy imported quizzes
+    if (quiz.questions) {
+      quiz.questions.forEach((q, i) => {
+        if (!q.id && !q._id) q.id = `q${i}`;
+      });
+    }
+
+    // Filter questions to only the ones actually answered (id-based mapping)
+    const answeredKeys = Object.keys(answers);
+    const isIdBased = answeredKeys.some(k => isNaN(k));
+
+    let questionsToGrade = quiz.questions;
+    if (isIdBased) {
+      const dbQuestionsMap = {};
+      quiz.questions.forEach(q => {
+         const qid = (q._id && q._id.toString()) || q.id;
+         dbQuestionsMap[qid] = q;
+      });
+      questionsToGrade = answeredKeys.map(qid => dbQuestionsMap[qid]).filter(Boolean);
+    } else {
+      // Legacy fallback
+      if (answeredKeys.length < quiz.questions.length) {
+         questionsToGrade = quiz.questions.slice(0, answeredKeys.length);
+      }
+    }
+
+    // 5. Fetch historical question counts for confidence calculation
+    const historicalProgress = await UserTopicProgress.find({ userId: req.user.userId }).lean();
+    const historicalCounts = {};
+    for (const hp of historicalProgress) {
+        historicalCounts[hp.topic] = (historicalCounts[hp.topic] || 0) + hp.questionsAnswered;
+        historicalCounts[`${hp.topic}::${hp.subtopic}`] = (historicalCounts[`${hp.topic}::${hp.subtopic}`] || 0) + hp.questionsAnswered;
+    }
+
+    // 5b. Run analysis using the ported quizAnalyzer utility
+    const analysis = analyzeQuizPerformance(answers, questionsToGrade, historicalCounts);
     const { totalScore, totalQuestions, overallPercentage, classifiedTopics, questionBreakdown } = analysis;
 
     // 6. Calculate derived metrics
@@ -191,6 +236,39 @@ export const submitQuiz = async (req, res) => {
       deviceType,
       xpEarned,
     });
+
+    // 7b. Persist UserTopicProgress
+    const topicProgressDocs = [];
+    for (const [topic, topicData] of Object.entries(classifiedTopics)) {
+        for (const [subtopic, subtopicData] of Object.entries(topicData.subtopics)) {
+            topicProgressDocs.push({
+                userId: req.user.userId,
+                subject: 'General',
+                topic,
+                subtopic,
+                score: subtopicData.percentage,
+                classification: subtopicData.classification,
+                confidence: subtopicData.confidence,
+                questionsAnswered: subtopicData.questionsAnswered,
+                quizAttemptId: attempt._id
+            });
+        }
+    }
+    if (topicProgressDocs.length > 0) {
+        await UserTopicProgress.insertMany(topicProgressDocs).catch(e => console.error("[submitQuiz] Failed to insert UserTopicProgress", e));
+    }
+
+    // 7c. Persist UserQuestionHistory
+    const historyDocs = [];
+    for (const q of questionBreakdown) {
+        historyDocs.push({
+            userId: req.user.userId,
+            questionId: q.questionId
+        });
+    }
+    if (historyDocs.length > 0) {
+        await UserQuestionHistory.insertMany(historyDocs).catch(e => console.error("[submitQuiz] Failed to insert UserQuestionHistory", e));
+    }
 
     // 8. Update user stats — fire-and-forget pattern (failure must NOT fail the request)
     try {

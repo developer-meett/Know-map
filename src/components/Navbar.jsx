@@ -22,7 +22,6 @@ const Navbar = () => {
           onKeyDown={e => e.key === 'Enter' && navigate('/')}>
           <div className="logoIcon">KM</div>
           <span>KnowMap</span>
-          <span className="logo-dot" aria-hidden>·</span>
         </div>
 
         {/* Right side */}

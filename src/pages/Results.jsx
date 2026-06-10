@@ -37,9 +37,10 @@ const DonutChart = ({ percentage }) => {
 };
 
 // ── Topic progress bar ─────────────────────────────────────────────────────────
-const TopicBar = ({ topic, data }) => {
+const TopicBar = ({ topic, data, isSubtopic = false }) => {
   const pct  = data.percentage ?? 0;
   const cls  = data.classification ?? '';
+  const conf = data.confidence ?? '';
   const badgeClass =
     cls === 'Mastered'       ? 'badge-mastered'
     : cls === 'Needs Revision' ? 'badge-revision'
@@ -50,19 +51,40 @@ const TopicBar = ({ topic, data }) => {
     : cls === 'Needs Revision' ? 'var(--warning)'
     : 'var(--danger)';
 
+  const [expanded, setExpanded] = useState(false);
+  const hasSubtopics = data.subtopics && Object.keys(data.subtopics).length > 0;
+
   return (
-    <div className="topic-card card">
-      <div className="topic-top">
-        <span className="topic-name">{topic}</span>
-        <span className={badgeClass}>{cls}</span>
+    <div className={`topic-card card ${isSubtopic ? 'subtopic-card' : ''}`} style={isSubtopic ? { padding: 'var(--space-2)', marginTop: 'var(--space-2)' } : {}}>
+      <div className="topic-top" onClick={() => hasSubtopics && setExpanded(!expanded)} style={{ cursor: hasSubtopics ? 'pointer' : 'default', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="topic-name-group" style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+          {hasSubtopics && (expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />)}
+          <span className="topic-name" style={{ fontWeight: isSubtopic ? '500' : '600' }}>{topic}</span>
+        </div>
+        <div className="topic-badges" style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
+          {conf && <span className={`badge-confidence`} style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{conf} conf</span>}
+          <span className={badgeClass}>{cls}</span>
+        </div>
       </div>
-      <div className="topic-fraction">{data.correct}/{data.total} correct</div>
-      <div className="topic-bar-bg">
+      <div className="topic-fraction" style={{ fontSize: '12px', marginTop: 'var(--space-1)' }}>
+        {data.earnedWeight !== undefined 
+          ? `${data.earnedWeight}/${data.totalWeight} weight` 
+          : `${data.correct}/${data.total} correct`}
+      </div>
+      <div className="topic-bar-bg" style={{ marginTop: 'var(--space-2)' }}>
         <div
           className="topic-bar-fill"
           style={{ width: `${pct}%`, background: barColor, transition: 'width 0.8s cubic-bezier(.4,0,.2,1)' }}
         />
       </div>
+      
+      {expanded && hasSubtopics && (
+        <div className="subtopics-container" style={{ marginTop: 'var(--space-3)', paddingLeft: 'var(--space-3)', borderLeft: '2px solid var(--border-light)' }}>
+          {Object.entries(data.subtopics).map(([subtopic, subData]) => (
+            <TopicBar key={subtopic} topic={subtopic} data={subData} isSubtopic={true} />
+          ))}
+        </div>
+      )}
     </div>
   );
 };
@@ -81,7 +103,7 @@ const QuestionItem = ({ item, index }) => {
             : <XCircle    size={16} color="var(--danger)"  />
           }
           <span className="q-index">Q{index + 1}</span>
-          <span className="q-text">{item.question ?? `Question ${index + 1}`}</span>
+          <span className="q-text">{item.questionText || item.question || `Question ${index + 1}`}</span>
         </div>
         {open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
       </button>

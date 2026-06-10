@@ -179,6 +179,22 @@ export class QuizJSONValidator {
       warnings.push(`${prefix} Empty topic - will be assigned "General"`);
     }
     
+    // Validate subtopic (optional)
+    if (question.subtopic && typeof question.subtopic !== 'string') {
+      errors.push(`${prefix} Subtopic must be a string if provided`);
+    }
+
+    // Validate difficulty (optional)
+    const validDifficulties = ['easy', 'medium', 'hard'];
+    if (question.difficulty && !validDifficulties.includes(question.difficulty)) {
+      errors.push(`${prefix} Difficulty must be one of: ${validDifficulties.join(', ')}`);
+    }
+
+    // Validate weight (optional)
+    if (question.weight !== undefined && question.weight !== null && typeof question.weight !== 'number') {
+      errors.push(`${prefix} Weight must be a number`);
+    }
+    
     // Validate optional ID field
     if (question.id && typeof question.id !== 'string') {
       errors.push(`${prefix} ID must be a string if provided`);

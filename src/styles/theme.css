@@ -1,5 +1,5 @@
 /* ─── Google Fonts ─────────────────────────────────────────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700;800&display=swap');
 
 /* ─── Design Tokens — Light Glassmorphism Palette ───────────────────────────── */
 :root {
@@ -43,6 +43,7 @@
   --text-muted:     #64748b;   /* slate-500   */
   --text-placeholder:#94a3b8;  /* slate-400   */
   --text-inverse:   #ffffff;
+  --text-quiztitle: #ffffff;
 
   /* ── Borders ── */
   --border:        rgba(148, 163, 184, 0.30);
@@ -54,7 +55,7 @@
   --chart-scratch:  #ef4444;
 
   /* ── Typography ── */
-  --font-heading: 'Plus Jakarta Sans', sans-serif;
+  --font-heading: 'Poppins', sans-serif;
   --font-body:    'Inter', sans-serif;
 
   --text-xs:   0.75rem;

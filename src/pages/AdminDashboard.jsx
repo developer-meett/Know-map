@@ -247,7 +247,7 @@ const AdminDashboard = () => {
       ...prev,
       questions: [
         ...prev.questions,
-        { id: `q${Date.now()}`, question: '', options: ['', '', '', ''], correct: 0, topic: 'General' },
+        { id: `q${Date.now()}`, question: '', options: ['', '', '', ''], correct: 0, topic: 'General', subtopic: 'General' },
       ],
     }));
     toast.success('Question added!', { autoClose: 2000 });
@@ -334,6 +334,7 @@ const AdminDashboard = () => {
           options:  q.options,
           correct:  q.correct,
           topic:    q.topic || fileData.topic || 'General',
+          subtopic: q.subtopic || 'General',
         })),
         isPublished: true,
       };
@@ -674,6 +675,16 @@ const AdminDashboard = () => {
                         value={question.topic || ''}
                         onChange={(e) => handleQuestionChange(questionIndex, 'topic', e.target.value)}
                         placeholder="e.g. JavaScript, CSS, React"
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label>Subtopic</label>
+                      <input
+                        type="text"
+                        value={question.subtopic || ''}
+                        onChange={(e) => handleQuestionChange(questionIndex, 'subtopic', e.target.value)}
+                        placeholder="e.g. Promises, Flexbox, Hooks"
                       />
                     </div>
 

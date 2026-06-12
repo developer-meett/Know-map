@@ -21,6 +21,7 @@ export default function Quiz({ items, onComplete, quizData, onBack }) {
         options: q.options,
         correctAnswer: q.correct,
         topic: q.topic || 'General',
+        subtopic: q.subtopic || 'General',
       }));
     }
     return Array.isArray(items) && items.length ? items : defaultQuestions;
@@ -129,12 +130,29 @@ export default function Quiz({ items, onComplete, quizData, onBack }) {
                 ? 'Needs Revision'
                 : 'Learn from Scratch';
           }
+          
+          const subtopics = {};
+          if (data.subtopics) {
+            Object.entries(data.subtopics).forEach(([subKey, subData]) => {
+              const subPct = Math.round((subData.correct / subData.total) * 100);
+              subtopics[subKey] = {
+                classification: subPct >= QUIZ_CONFIG.MASTERY_THRESHOLD * 100 ? 'Mastered' 
+                  : subPct >= QUIZ_CONFIG.REVISION_THRESHOLD * 100 ? 'Needs Revision' : 'Learn from Scratch',
+                correct: subData.correct,
+                total: subData.total,
+                dontKnow: subData.dontKnow || 0,
+                percentage: subPct,
+              };
+            });
+          }
+
           acc[topic] = {
             classification,
             correct: data.correct,
             total: data.total,
             dontKnow: data.dontKnow || 0,
             percentage,
+            subtopics,
           };
           return acc;
         }, {}),
@@ -170,12 +188,26 @@ export default function Quiz({ items, onComplete, quizData, onBack }) {
       if (isCorrect) correctCount++;
 
       const topic = question.topic || 'General';
+      const subtopic = question.subtopic || 'General';
+      
       if (!topicScores[topic]) {
-        topicScores[topic] = { correct: 0, total: 0, dontKnow: 0 };
+        topicScores[topic] = { correct: 0, total: 0, dontKnow: 0, subtopics: {} };
       }
+      if (!topicScores[topic].subtopics[subtopic]) {
+        topicScores[topic].subtopics[subtopic] = { correct: 0, total: 0, dontKnow: 0 };
+      }
+      
       topicScores[topic].total++;
-      if (isCorrect) topicScores[topic].correct++;
-      if (isDontKnow) topicScores[topic].dontKnow++;
+      topicScores[topic].subtopics[subtopic].total++;
+      
+      if (isCorrect) {
+        topicScores[topic].correct++;
+        topicScores[topic].subtopics[subtopic].correct++;
+      }
+      if (isDontKnow) {
+        topicScores[topic].dontKnow++;
+        topicScores[topic].subtopics[subtopic].dontKnow++;
+      }
     });
 
     return {

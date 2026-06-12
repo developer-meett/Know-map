@@ -52,12 +52,20 @@ export const getQuizById = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Quiz not found.' });
     }
 
+    // Parse limit from query string. Default to 20% of the question bank if not provided.
+    // If limit=all is passed, we return all questions in the bank.
+    const limitQuery = req.query.limit;
+    const defaultLimit = Math.max(1, Math.round(quiz.questions.length * 0.20));
+    const limit = limitQuery === 'all' 
+      ? quiz.questions.length 
+      : parseInt(limitQuery, 10) || defaultLimit;
+
     if (req.user && req.user.userId) {
-      quiz.questions = await generateQuizForUser(req.user.userId, quiz._id, 5);
+      quiz.questions = await generateQuizForUser(req.user.userId, quiz._id, limit);
     } else {
       let questions = [...quiz.questions];
       questions.sort(() => Math.random() - 0.5);
-      quiz.questions = cleanAndShuffleQuestions(questions.slice(0, 5));
+      quiz.questions = cleanAndShuffleQuestions(questions.slice(0, limit));
     }
 
     return res.status(200).json({ success: true, quiz });

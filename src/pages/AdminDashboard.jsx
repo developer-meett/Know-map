@@ -329,12 +329,12 @@ const AdminDashboard = () => {
         description: fileData.description || `Imported quiz with ${total} questions`,
         topic:       fileData.topic || 'General',
         questions:   fileData.questions.map((q, i) => ({
-          id:      `q${i + 1}`,
-          question: q.question,
-          options:  q.options,
-          correct:  q.correct,
+          ...q,
+          id:       q.id || `q${i + 1}`,
           topic:    q.topic || fileData.topic || 'General',
           subtopic: q.subtopic || 'General',
+          difficulty: q.difficulty || 'medium',
+          weight:   q.weight ?? 2,
         })),
         isPublished: true,
       };

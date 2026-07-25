@@ -34,6 +34,11 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'OK' });
 });
 
+// Root route
+app.get('/', (req, res) => {
+  res.status(200).send('Knowmap API is running successfully!');
+});
+
 // API Health check
 app.get('/api/health', (_req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
